@@ -1,201 +1,162 @@
+'use client';
+
+import { useState, useEffect } from 'react';
 import { DashboardLayout } from "@/components/layout/dashboard-layout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
+import { LeadTable } from "@/components/table/LeadTable";
+import { dataService } from "@/services/dataService";
+import { Lead, LeadStatus, LeadSource } from '@/types';
 import { 
-  ChevronLeft, 
-  ChevronRight, 
-  Phone, 
-  Mail, 
-  Calendar 
-} from "lucide-react";
+  Filter, 
+  Download,
+  Plus
+} from 'lucide-react';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Input } from "@/components/ui/input";
 
 export default function LeadsPage() {
-  // High intent leads data from dashboard
-  const highIntentLeads = [
-    { 
-      id: 1,
-      name: "Samiksha Ghole", 
-      email: "samiksha.g@example.com",
-      phone: "+91 98765 43210",
-      source: "Website",
-      status: "Hot",
-      lastContact: "2 days ago",
-      conversion: 84,
-      property: "Olive Heights"
-    },
-    { 
-      id: 2,
-      name: "Priya Khanna", 
-      email: "priya.k@example.com",
-      phone: "+91 87654 32109",
-      source: "Referral",
-      status: "Hot",
-      lastContact: "1 day ago",
-      conversion: 80,
-      property: "Riveria Complex"
-    },
-    { 
-      id: 3,
-      name: "Tanya Sharma", 
-      email: "tanya.s@example.com",
-      phone: "+91 76543 21098",
-      source: "Property Portal",
-      status: "Warm",
-      lastContact: "3 days ago",
-      conversion: 48,
-      property: "Sapphire Greens"
-    },
-    { 
-      id: 4,
-      name: "Sagar Amin", 
-      email: "sagar.a@example.com",
-      phone: "+91 65432 10987",
-      source: "Social Media",
-      status: "Warm",
-      lastContact: "5 days ago",
-      conversion: 24,
-      property: "Royal Classic"
-    },
-  ];
+  const [leads, setLeads] = useState<Lead[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [filters, setFilters] = useState({
+    status: 'all',
+    source: 'all',
+    search: ''
+  });
 
-  // Additional leads for the table
-  const additionalLeads = [
-    { 
-      id: 5,
-      name: "Rahul Mehta", 
-      email: "rahul.m@example.com",
-      phone: "+91 54321 09876",
-      source: "Website",
-      status: "Cold",
-      lastContact: "1 week ago",
-      conversion: 15,
-      property: "Olive Heights"
-    },
-    { 
-      id: 6,
-      name: "Ananya Patel", 
-      email: "ananya.p@example.com",
-      phone: "+91 43210 98765",
-      source: "Property Portal",
-      status: "Cold",
-      lastContact: "2 weeks ago",
-      conversion: 10,
-      property: "Sapphire Greens"
-    },
-  ];
+  useEffect(() => {
+    const fetchLeads = async () => {
+      try {
+        setLoading(true);
+        const response = await dataService.getLeads({
+          status: filters.status !== 'all' ? [filters.status as LeadStatus] : undefined,
+          source: filters.source !== 'all' ? [filters.source as LeadSource] : undefined,
+          search: filters.search || undefined
+        });
+        
+        if (response.success) {
+          setLeads(response.data);
+        }
+      } catch (error) {
+        console.error('Error fetching leads:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    fetchLeads();
+  }, [filters]);
 
-  // Combine all leads
-  const allLeads = [...highIntentLeads, ...additionalLeads];
+  const handleLeadClick = (lead: Lead) => {
+    console.log('Lead clicked:', lead);
+    // Navigate to lead details or open modal
+  };
+
+  const handleLeadAction = (action: string, lead: Lead) => {
+    console.log(`Lead action: ${action}`, lead);
+    // Handle lead actions (call, email, view details)
+  };
+
+  const handleAddLead = () => {
+    console.log('Add new lead');
+    // Open add lead modal or navigate to create page
+  };
+
+  const handleExport = () => {
+    console.log('Export leads');
+    // Export leads data
+  };
 
   return (
     <DashboardLayout>
       <div className="p-4 md:p-6 space-y-6">
-        <div className="flex justify-between items-center">
-          <h1 className="text-2xl font-bold">Leads Management</h1>
+        {/* Header */}
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900">Leads Management</h1>
+            <p className="text-sm text-gray-600 mt-1">
+              Manage and track your sales leads efficiently
+            </p>
+          </div>
           <div className="flex items-center gap-2">
-            <Button variant="outline" size="sm">Export</Button>
-            <Button size="sm">Add New Lead</Button>
+            <Button variant="outline" size="sm" onClick={handleExport}>
+              <Download className="h-4 w-4 mr-2" />
+              Export
+            </Button>
+            <Button size="sm" onClick={handleAddLead}>
+              <Plus className="h-4 w-4 mr-2" />
+              Add Lead
+            </Button>
           </div>
         </div>
 
+        {/* Filters */}
         <Card>
+          <CardContent className="p-4">
+            <div className="flex flex-col sm:flex-row gap-4">
+              <div className="flex items-center gap-2 flex-1">
+                <Filter className="h-4 w-4 text-gray-500" />
+                <Input
+                  placeholder="Search leads..."
+                  value={filters.search}
+                  onChange={(e) => setFilters(prev => ({ ...prev, search: e.target.value }))}
+                  className="max-w-xs"
+                />
+              </div>
+              <div className="flex gap-2">
+                <Select
+                  value={filters.status}
+                  onValueChange={(value) => setFilters(prev => ({ ...prev, status: value }))}
+                >
+                  <SelectTrigger className="w-32">
+                    <SelectValue placeholder="Status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Status</SelectItem>
+                    {Object.values(LeadStatus).map(status => (
+                      <SelectItem key={status} value={status}>{status}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                
+                <Select
+                  value={filters.source}
+                  onValueChange={(value) => setFilters(prev => ({ ...prev, source: value }))}
+                >
+                  <SelectTrigger className="w-32">
+                    <SelectValue placeholder="Source" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Sources</SelectItem>
+                    {Object.values(LeadSource).map(source => (
+                      <SelectItem key={source} value={source}>{source}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Leads Table */}
+        <Card>
+          <CardHeader>
+            <CardTitle>All Leads</CardTitle>
+          </CardHeader>
           <CardContent className="p-0">
-            <div className="overflow-x-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead className="pl-4">Lead</TableHead>
-                    <TableHead>Contact</TableHead>
-                    <TableHead>Source</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Last Contact</TableHead>
-                    <TableHead>Conversion</TableHead>
-                    <TableHead>Property</TableHead>
-                    <TableHead>Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {allLeads.map((lead) => (
-                    <TableRow key={lead.id}>
-                      <TableCell className="pl-4">
-                        <div className="flex items-center gap-3">
-                          <Avatar className="h-8 w-8 bg-blue-100 text-blue-600">
-                            <AvatarFallback>{lead.name.split(' ').map(n => n[0]).join('')}</AvatarFallback>
-                          </Avatar>
-                          <div>
-                            <div className="font-medium">{lead.name}</div>
-                          </div>
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex flex-col">
-                          <div className="flex items-center text-sm text-muted-foreground">
-                            <Mail className="mr-1 h-3 w-3" />
-                            {lead.email}
-                          </div>
-                          <div className="flex items-center text-sm text-muted-foreground">
-                            <Phone className="mr-1 h-3 w-3" />
-                            {lead.phone}
-                          </div>
-                        </div>
-                      </TableCell>
-                      <TableCell>{lead.source}</TableCell>
-                      <TableCell>
-                        <div className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold ${
-                          lead.status === 'Hot' 
-                            ? 'bg-green-100 text-green-800' 
-                            : lead.status === 'Warm' 
-                              ? 'bg-yellow-100 text-yellow-800' 
-                              : 'bg-gray-100 text-gray-800'
-                        }`}>
-                          {lead.status}
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex items-center text-sm">
-                          <Calendar className="mr-1 h-3 w-3" />
-                          {lead.lastContact}
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <div className={`text-sm font-medium ${
-                          lead.conversion > 50 
-                            ? 'text-green-600' 
-                            : lead.conversion > 20 
-                              ? 'text-amber-600' 
-                              : 'text-gray-600'
-                        }`}>
-                          {lead.conversion}%
-                        </div>
-                      </TableCell>
-                      <TableCell>{lead.property}</TableCell>
-                      <TableCell>
-                        <Button variant="outline" size="sm">Follow Up</Button>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
-            <div className="flex items-center justify-end p-4 space-x-2">
-              <Button variant="outline" size="sm">
-                <ChevronLeft className="h-4 w-4 mr-1" />
-                Previous
-              </Button>
-              <Button variant="outline" size="sm">
-                Next
-                <ChevronRight className="h-4 w-4 ml-1" />
-              </Button>
-            </div>
+            <LeadTable
+              leads={leads}
+              onLeadClick={handleLeadClick}
+              onLeadAction={handleLeadAction}
+              loading={loading}
+              className="border-0"
+            />
           </CardContent>
         </Card>
       </div>

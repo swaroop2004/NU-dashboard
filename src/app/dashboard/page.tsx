@@ -1,13 +1,58 @@
 'use client';
 
+import { useState, useEffect } from 'react';
 import { DashboardLayout } from "@/components/layout/dashboard-layout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
-import { ArrowUp, ChevronUp, Users, Building2 } from "lucide-react";
+import { ArrowUp, Users } from "lucide-react";
 import { FadeIn, SlideIn } from "@/components/ui/animations";
+import { Lead, Property, DashboardStats, Activity, LeadStatus, PropertyStatus, ActivityType } from '@/types';
+import { dataService } from '@/services/dataService';
+import { LeadTable } from '@/components/table';
 
 export default function DashboardPage() {
+  const [stats, setStats] = useState<DashboardStats | null>(null);
+  const [highIntentLeads, setHighIntentLeads] = useState<Lead[]>([]);
+  const [topProperties, setTopProperties] = useState<Property[]>([]);
+  const [recentActivities, setRecentActivities] = useState<Activity[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    loadDashboardData();
+  }, []);
+
+  const loadDashboardData = async () => {
+    try {
+      setLoading(true);
+      const [statsData, leadsData, propertiesData, activitiesData] = await Promise.all([
+        dataService.getDashboardStats(),
+        dataService.getLeads({ status: [LeadStatus.HOT, LeadStatus.WARM] }),
+        dataService.getProperties({ status: [PropertyStatus.ACTIVE] }),
+        dataService.getActivities(8)
+      ]);
+      
+      setStats(statsData.data);
+      setHighIntentLeads(leadsData.data || []);
+      setTopProperties(propertiesData.data || []);
+      setRecentActivities(activitiesData.data || []);
+    } catch (error) {
+      console.error('Error loading dashboard data:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleViewLead = (lead: Lead) => {
+    console.log('View lead:', lead);
+  };
+
+  const handleEditLead = (lead: Lead) => {
+    console.log('Edit lead:', lead);
+  };
+
+  const handleViewProperty = (property: Property) => {
+    console.log('View property:', property);
+  };
   return (
     <DashboardLayout>
       <div className="p-4 md:p-6 bg-gray-100">
@@ -23,10 +68,12 @@ export default function DashboardPage() {
                     <CardTitle className="text-xl font-medium text-blue-600 group-hover:text-white">Total Leads</CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <div className="text-4xl font-bold text-blue-600 group-hover:text-white">320</div>
+                    <div className="text-4xl font-bold text-blue-600 group-hover:text-white">
+                      {loading ? '...' : stats?.totalLeads || 0}
+                    </div>
                     <p className="text-sm mt-2 flex items-center text-green-500 group-hover:text-green-200">
                       <ArrowUp className="mr-1 h-4 w-4" />
-                      +12% this week
+                      +{loading ? '...' : stats?.monthlyGrowth || 0}% this week
                     </p>
                   </CardContent>
                 </Card>
@@ -37,7 +84,9 @@ export default function DashboardPage() {
                     <CardTitle className="text-xl font-medium text-blue-600 group-hover:text-white">Active Leads</CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <div className="text-4xl font-bold text-blue-600 group-hover:text-white">220</div>
+                    <div className="text-4xl font-bold text-blue-600 group-hover:text-white">
+                      {loading ? '...' : stats?.hotLeads || 0}
+                    </div>
                     <p className="text-sm text-muted-foreground mt-2 group-hover:text-blue-100">This month</p>
                   </CardContent>
                 </Card>
@@ -48,10 +97,12 @@ export default function DashboardPage() {
                     <CardTitle className="text-xl font-medium text-blue-600 group-hover:text-white">Dormant leads</CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <div className="text-4xl font-bold text-blue-600 group-hover:text-white">100</div>
+                    <div className="text-4xl font-bold text-blue-600 group-hover:text-white">
+                      {loading ? '...' : (stats?.totalLeads || 0) - (stats?.hotLeads || 0)}
+                    </div>
                     <p className="text-sm mt-2 flex items-center text-red-500 group-hover:text-red-200">
                       <ArrowUp className="mr-1 h-4 w-4" />
-                      +5% this week
+                      +{loading ? '...' : stats?.monthlyGrowth || 0}% this week
                     </p>
                   </CardContent>
                 </Card>
@@ -108,130 +159,18 @@ export default function DashboardPage() {
                 <div className="flex justify-between items-center mb-4">
                   <h2 className="text-xl font-bold">High Intent Leads</h2>
                   <a href="/leads" className="text-sm text-gray-500 hover:text-blue-600 transition-colors">view all</a>
-                </div>                <div className="bg-white p-4 rounded-lg shadow-sm">
-                  {/* Search bar - doubled width */}
-                  <div className="mb-4">
-                    <input 
-                      type="text" 
-                      placeholder="Search leads..." 
-                      className="w-full md:w-2/3 lg:w-3/4 px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    />
-                  </div>
-                  
-                  {/* Grid for leads - 2 per row on larger screens, 1 per row on smaller */}
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {/* Lead 1 */}
-                    <div className="flex items-center gap-4 p-3 border border-gray-100 rounded-lg hover:bg-blue-50 transition-colors">
-                      <Avatar className="h-10 w-10 bg-blue-100 text-blue-600">
-                        <AvatarFallback>SG</AvatarFallback>
-                      </Avatar>
-                      <div className="flex-1">
-                        <h3 className="font-medium">Samiksha Ghole</h3>
-                        <p className="text-sm text-gray-500">Interested in 3BHK at Olive Heights</p>
-                      </div>
-                      <div>
-                        <Button size="sm">Follow up</Button>
-                      </div>
-                    </div>
-                    
-                    {/* Lead 2 */}
-                    <div className="flex items-center gap-4 p-3 border border-gray-100 rounded-lg hover:bg-blue-50 transition-colors">
-                      <Avatar className="h-10 w-10 bg-blue-100 text-blue-600">
-                        <AvatarFallback>RK</AvatarFallback>
-                      </Avatar>
-                      <div className="flex-1">
-                        <h3 className="font-medium">Rahul Kumar</h3>
-                        <p className="text-sm text-gray-500">Interested in 2BHK at Sapphire Greens</p>
-                      </div>
-                      <div>
-                        <Button size="sm" >Follow up</Button>
-                      </div>
-                    </div>
-                    
-                    {/* Lead 3 */}
-                    <div className="flex items-center gap-4 p-3 border border-gray-100 rounded-lg hover:bg-blue-50 transition-colors">
-                      <Avatar className="h-10 w-10 bg-blue-100 text-blue-600">
-                        <AvatarFallback>AP</AvatarFallback>
-                      </Avatar>
-                      <div className="flex-1">
-                        <h3 className="font-medium">Ananya Patel</h3>
-                        <p className="text-sm text-gray-500">Interested in 4BHK at Royal Classic</p>
-                      </div>
-                      <div>
-                        <Button size="sm">Follow up</Button>
-                      </div>
-                    </div>
-                    
-                    {/* Lead 4 */}
-                    <div className="flex items-center gap-4 p-3 border border-gray-100 rounded-lg hover:bg-blue-50 transition-colors">
-                      <Avatar className="h-10 w-10 bg-blue-100 text-blue-600">
-                        <AvatarFallback>VS</AvatarFallback>
-                      </Avatar>
-                      <div className="flex-1">
-                        <h3 className="font-medium">Vikram Singh</h3>
-                        <p className="text-sm text-gray-500">Interested in 3BHK at Riveria Complex</p>
-                      </div>
-                      <div>
-                        <Button size="sm">Follow up</Button>
-                      </div>
-                    </div>
-                    
-                    {/* Lead 5 */}
-                    <div className="flex items-center gap-4 p-3 border border-gray-100 rounded-lg hover:bg-blue-50 transition-colors">
-                      <Avatar className="h-10 w-10 bg-blue-100 text-blue-600">
-                        <AvatarFallback>MD</AvatarFallback>
-                      </Avatar>
-                      <div className="flex-1">
-                        <h3 className="font-medium">Meera Desai</h3>
-                        <p className="text-sm text-gray-500">Interested in 2BHK at Olive Heights</p>
-                      </div>
-                      <div>
-                        <Button size="sm">Follow up</Button>
-                      </div>
-                    </div>
-                    
-                    {/* Lead 6 */}
-                    <div className="flex items-center gap-4 p-3 border border-gray-100 rounded-lg hover:bg-blue-50 transition-colors">
-                      <Avatar className="h-10 w-10 bg-blue-100 text-blue-600">
-                        <AvatarFallback>AK</AvatarFallback>
-                      </Avatar>
-                      <div className="flex-1">
-                        <h3 className="font-medium">Arjun Kapoor</h3>
-                        <p className="text-sm text-gray-500">Interested in 3BHK at Sapphire Greens</p>
-                      </div>
-                      <div>
-                        <Button size="sm">Follow up</Button>
-                      </div>
-                    </div>
-                    
-                    {/* Lead 7 */}
-                    <div className="flex items-center gap-4 p-3 border border-gray-100 rounded-lg hover:bg-blue-50 transition-colors">
-                      <Avatar className="h-10 w-10 bg-blue-100 text-blue-600">
-                        <AvatarFallback>PS</AvatarFallback>
-                      </Avatar>
-                      <div className="flex-1">
-                        <h3 className="font-medium">Priya Sharma</h3>
-                        <p className="text-sm text-gray-500">Interested in 4BHK at Riveria Complex</p>
-                      </div>
-                      <div>
-                        <Button size="sm">Follow up</Button>
-                      </div>
-                    </div>
-                    
-                    {/* Lead 8 */}
-                    <div className="flex items-center gap-4 p-3 border border-gray-100 rounded-lg hover:bg-blue-50 transition-colors">
-                      <Avatar className="h-10 w-10 bg-blue-100 text-blue-600">
-                        <AvatarFallback>RJ</AvatarFallback>
-                      </Avatar>
-                      <div className="flex-1">
-                        <h3 className="font-medium">Raj Joshi</h3>
-                        <p className="text-sm text-gray-500">Interested in 3BHK at Royal Classic</p>
-                      </div>
-                      <div>
-                        <Button size="sm">Follow up</Button>
-                      </div>
-                    </div>
-                  </div>
+                </div>
+                <div className="bg-white p-4 rounded-lg shadow-sm">
+                  <LeadTable
+                    leads={highIntentLeads.slice(0, 8)}
+                    loading={loading}
+                    onLeadClick={handleViewLead}
+                    onLeadAction={(action, lead) => {
+                      if (action === 'view') handleViewLead(lead);
+                      if (action === 'edit') handleEditLead(lead);
+                    }}
+                    className="compact"
+                  />
                 </div>
               </div>
             </SlideIn>
@@ -248,21 +187,23 @@ export default function DashboardPage() {
                   </div>
                   <div className="bg-white p-4 rounded-lg shadow-sm">
                     <div className="space-y-4">
-                      {[
-                        { name: "Olive Heights", leads: 98, demoViews: 21, siteVisits: 33, tokens: 21 },
-                        { name: "Riveria Complex", leads: 55, demoViews: 40, siteVisits: 25, tokens: 20 },
-                        { name: "Sapphire Greens", leads: 60, demoViews: 44, siteVisits: 39, tokens: 30 },
-                        { name: "Royal Classic", leads: 49, demoViews: 21, siteVisits: 19, tokens: 15 }
-                      ].map((property, i) => (
-                        <SlideIn key={i} direction="up" delay={0.15 * i}>
+                      {topProperties.slice(0, 4).map((property, i) => (
+                        <SlideIn key={property.id} direction="up" delay={0.15 * i}>
                           <Card className="hover:shadow-lg transition-all duration-300">
                             <CardContent className="px-4">
                               <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
                                 <div>
                                   <h3 className="font-semibold">{property.name}</h3>
-                                  <p className="text-sm text-gray-500">Baner, Pune - 3BHK Premium Tower</p>
+                                  <p className="text-sm text-gray-500">{property.location} - {property.type}</p>
                                 </div>
-                                <Button variant="outline" size="sm" className="hover:bg-blue-50 transition-colors">View property</Button>
+                                <Button 
+                                  variant="outline" 
+                                  size="sm" 
+                                  className="hover:bg-blue-50 transition-colors"
+                                  onClick={() => handleViewProperty(property)}
+                                >
+                                  View property
+                                </Button>
                               </div>
                               <div className="grid grid-cols-2 gap-4 mt-4">
                                 <div className="flex items-center gap-2">
@@ -308,37 +249,42 @@ export default function DashboardPage() {
                   </div>
                   <div className="bg-white p-4 rounded-lg shadow-sm">
                     <div className="space-y-4">
-                      <div className="flex items-center gap-3 p-3 border border-gray-100 rounded-lg hover:bg-blue-50 transition-colors">
-                        <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                        <div className="flex-1">
-                          <p className="text-sm font-medium">New lead assigned to you</p>
-                          <p className="text-xs text-gray-500">Rahul Kumar - 2 minutes ago</p>
+                      {loading ? (
+                        <div className="space-y-4">
+                          {[1, 2, 3, 4].map((i) => (
+                            <div key={i} className="flex items-center gap-3 p-3 border border-gray-100 rounded-lg animate-pulse">
+                              <div className="w-2 h-2 bg-gray-300 rounded-full"></div>
+                              <div className="flex-1 space-y-2">
+                                <div className="h-4 bg-gray-200 rounded w-3/4"></div>
+                                <div className="h-3 bg-gray-200 rounded w-1/2"></div>
+                              </div>
+                            </div>
+                          ))}
                         </div>
-                      </div>
-                      
-                      <div className="flex items-center gap-3 p-3 border border-gray-100 rounded-lg hover:bg-blue-50 transition-colors">
-                        <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
-                        <div className="flex-1">
-                          <p className="text-sm font-medium">Site visit completed</p>
-                          <p className="text-xs text-gray-500">Olive Heights - 15 minutes ago</p>
-                        </div>
-                      </div>
-                      
-                      <div className="flex items-center gap-3 p-3 border border-gray-100 rounded-lg hover:bg-blue-50 transition-colors">
-                        <div className="w-2 h-2 bg-yellow-500 rounded-full"></div>
-                        <div className="flex-1">
-                          <p className="text-sm font-medium">Follow-up scheduled</p>
-                          <p className="text-xs text-gray-500">Samiksha Ghole - 1 hour ago</p>
-                        </div>
-                      </div>
-                      
-                      <div className="flex items-center gap-3 p-3 border border-gray-100 rounded-lg hover:bg-blue-50 transition-colors">
-                        <div className="w-2 h-2 bg-purple-500 rounded-full"></div>
-                        <div className="flex-1">
-                          <p className="text-sm font-medium">Token issued</p>
-                          <p className="text-xs text-gray-500">Ananya Patel - 2 hours ago</p>
-                        </div>
-                      </div>
+                      ) : (
+                        <>
+                          {recentActivities.slice(0, 4).map((activity) => (
+                            <div key={activity.id} className="flex items-center gap-3 p-3 border border-gray-100 rounded-lg hover:bg-blue-50 transition-colors">
+                              <div className={`w-2 h-2 rounded-full ${
+                                activity.type === ActivityType.LEAD_ASSIGNED ? 'bg-green-500' :
+                                activity.type === ActivityType.SITE_VISIT ? 'bg-blue-500' :
+                                activity.type === ActivityType.FOLLOW_UP ? 'bg-yellow-500' :
+                                activity.type === ActivityType.TOKEN_ISSUED ? 'bg-purple-500' :
+                                'bg-gray-500'
+                              }`}></div>
+                              <div className="flex-1">
+                                <p className="text-sm font-medium">{activity.description}</p>
+                                <p className="text-xs text-gray-500">{activity.relatedEntity.name} - {activity.timestamp}</p>
+                              </div>
+                            </div>
+                          ))}
+                          {recentActivities.length === 0 && (
+                            <div className="text-center text-gray-500 py-8">
+                              No recent activities
+                            </div>
+                          )}
+                        </>
+                      )}
                     </div>
                   </div>
                 </div>

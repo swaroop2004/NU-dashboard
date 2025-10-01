@@ -1,21 +1,15 @@
+"use client";
+
+import { useState } from 'react';
 import { DashboardLayout } from "@/components/layout/dashboard-layout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import {
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  ResponsiveContainer,
-  LineChart,
-  Line,
-  PieChart,
-  Pie,
-  Cell,
-} from "recharts";
+import { Button } from "@/components/ui/button";
+import { AIChatbot } from "@/components/analytics/AIChatbot";
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line, PieChart, Pie, Cell } from "recharts";
+import { Sparkles } from 'lucide-react';
 
 export default function AnalyticsPage() {
+  const [isChatbotOpen, setIsChatbotOpen] = useState(false);
   // Conversion funnel data from dashboard
   const funnelData = [
     { name: "Leads Captured", value: 1200 },
@@ -60,6 +54,13 @@ export default function AnalyticsPage() {
       <div className="p-4 md:p-6 space-y-6">
         <div className="flex justify-between items-center">
           <h1 className="text-2xl font-bold">Analytics Dashboard</h1>
+          <Button 
+            onClick={() => setIsChatbotOpen(true)}
+            className="bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white"
+          >
+            <Sparkles className="h-4 w-4 mr-2" />
+            AI Analysis
+          </Button>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -132,8 +133,8 @@ export default function AnalyticsPage() {
                       outerRadius={80}
                       fill="#8884d8"
                       dataKey="value"
-                      label={({ name, percent }: any) =>
-                        `${name}: ${(percent * 100).toFixed(0)}%`
+                      label={({ name, percent }: { name?: string; percent?: number }) =>
+                        `${name}: ${((percent || 0) * 100).toFixed(0)}%`
                       }
                     >
                       {leadSourceData.map((entry, index) => (
@@ -176,6 +177,18 @@ export default function AnalyticsPage() {
           </Card>
         </div>
       </div>
+      
+      {/* AI Chatbot */}
+      <AIChatbot 
+        isOpen={isChatbotOpen}
+        onClose={() => setIsChatbotOpen(false)}
+        analyticsData={{
+          funnelData,
+          monthlyLeadData,
+          leadSourceData,
+          propertyPerformanceData
+        }}
+      />
     </DashboardLayout>
   );
 }

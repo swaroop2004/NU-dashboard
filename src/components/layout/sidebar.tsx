@@ -50,22 +50,22 @@ export function Sidebar({ className }: SidebarProps) {
           </Button>
         </SheetTrigger>
         <SheetContent side="left" className="p-0">
-          <div className="space-y-4 py-4 flex flex-col h-full bg-slate-50 text-slate-800">
-            <div className="px-3 py-2 flex items-center gap-2">
-              <div className="bg-blue-600 text-white p-2 rounded-md">
+          <div className="space-y-4 py-4 flex flex-col h-full bg-white/80 backdrop-blur-xl text-slate-800 border-r border-white/40">
+            <div className="px-3 py-2 flex items-center gap-2 bg-white/60 backdrop-blur-sm border-b border-white/30">
+              <div className="bg-blue-600 text-white p-2 rounded-md shadow-md">
                 <span className="font-bold">Nu</span>
               </div>
-              <span className="font-bold text-xl">Real Estate</span>
+              <span className="font-bold text-xl text-gray-800 drop-shadow-sm">Real Estate</span>
             </div>
-            <div className="flex flex-col px-3 py-2 space-y-2">
+            <div className="flex flex-col px-3 py-2 space-y-2 bg-white/40 backdrop-blur-sm">
               {routes.map((route) => (
                 <Link
                   key={route.href}
                   href={route.href}
                   onClick={() => setOpen(false)}
                   className={cn(
-                    "flex items-center gap-3 rounded-lg px-3 py-2 text-slate-500 transition-all hover:bg-blue-600 hover:text-white",
-                    pathname === route.href ? "bg-blue-600 text-white" : ""
+                    "flex items-center gap-3 rounded-lg px-3 py-2 text-gray-700 transition-all hover:bg-blue-500 hover:text-white hover:shadow-md",
+                    pathname === route.href ? "bg-blue-500 text-white shadow-md" : "bg-white/40 backdrop-blur-sm border border-white/30"
                   )}
                 >
                   <span>{route.label}</span>
@@ -77,21 +77,21 @@ export function Sidebar({ className }: SidebarProps) {
       </Sheet>
 
       {/* Desktop Sidebar */}
-      <div className={cn("hidden md:flex h-full w-[200px] flex-col bg-slate-50", className)}>
-        <div className="px-3 py-4 flex items-center gap-2">
-          <div className="bg-blue-600 text-white p-2 rounded-md">
+      <div className={cn("hidden md:flex h-full w-[200px] flex-col bg-white/60 backdrop-blur-xl border-r border-white/40 shadow-lg", className)}>
+        <div className="px-3 py-4 flex items-center gap-2 bg-white/40 backdrop-blur-sm border-b border-white/30">
+          <div className="bg-blue-600 text-white p-2 rounded-md shadow-md">
             <span className="font-bold">Nu</span>
           </div>
-          <span className="font-bold text-xl">Real Estate</span>
+          <span className="font-bold text-xl text-gray-800 drop-shadow-sm">Real Estate</span>
         </div>
-        <div className="flex flex-col flex-1 px-3 py-2 space-y-2">
+        <div className="flex flex-col flex-1 px-3 py-2 space-y-2 bg-white/30 backdrop-blur-sm">
           {routes.map((route) => (
             <Link
               key={route.href}
               href={route.href}
               className={cn(
-                "flex items-center gap-3 rounded-lg px-3 py-2 text-slate-500 transition-all hover:bg-blue-600 hover:text-white",
-                pathname === route.href ? "bg-blue-600 text-white" : ""
+                "flex items-center gap-3 rounded-lg px-3 py-2 text-gray-700 transition-all hover:bg-blue-500 hover:text-white hover:shadow-md",
+                pathname === route.href ? "bg-blue-500 text-white shadow-md" : "bg-white/40 backdrop-blur-sm border border-white/30"
               )}
             >
               <span>{route.label}</span>
