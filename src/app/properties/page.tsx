@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { PropertyTable } from "@/components/table";
 import { Property, PropertyStatus } from '@/types';
 import { dataService } from '@/services/dataService';
+import { PropertyDetailsModal } from '@/components/PropertyDetailsModal';
 import { 
   ChevronLeft, 
   ChevronRight, 
@@ -19,6 +20,8 @@ export default function PropertiesPage() {
   const [loading, setLoading] = useState(true);
   const [statusFilter] = useState<PropertyStatus | 'all'>('all');
   const [searchTerm, setSearchTerm] = useState('');
+  const [selectedProperty, setSelectedProperty] = useState<Property | null>(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
 
   useEffect(() => {
     loadProperties();
@@ -37,7 +40,8 @@ export default function PropertiesPage() {
   };
 
   const handleViewProperty = (property: Property) => {
-    console.log('View property:', property);
+    setSelectedProperty(property);
+    setIsModalOpen(true);
   };
 
   const handleEditProperty = (property: Property) => {
@@ -95,8 +99,14 @@ export default function PropertiesPage() {
               loading={loading}
               onPropertyClick={handleViewProperty}
               onPropertyAction={(action, property) => {
-                if (action === 'view') handleViewProperty(property);
-                if (action === 'edit') handleEditProperty(property);
+                if (action === 'view') {
+                  setSelectedProperty(property);
+                  setIsModalOpen(true);
+                } else if (action === 'edit') {
+                  handleEditProperty(property);
+                } else {
+                  console.log(`Property ${action}:`, property);
+                }
               }}
             />
             
@@ -115,6 +125,16 @@ export default function PropertiesPage() {
           </CardContent>
         </Card>
       </div>
+      
+      <PropertyDetailsModal
+        property={selectedProperty}
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        onEdit={(property) => {
+          console.log('Edit property:', property);
+          setIsModalOpen(false);
+        }}
+      />
     </DashboardLayout>
   );
 }

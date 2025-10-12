@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { DashboardLayout } from "@/components/layout/dashboard-layout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -22,6 +23,7 @@ import {
 import { Input } from "@/components/ui/input";
 
 export default function LeadsPage() {
+  const router = useRouter();
   const [leads, setLeads] = useState<Lead[]>([]);
   const [loading, setLoading] = useState(true);
   const [filters, setFilters] = useState({
@@ -54,13 +56,15 @@ export default function LeadsPage() {
   }, [filters]);
 
   const handleLeadClick = (lead: Lead) => {
-    console.log('Lead clicked:', lead);
-    // Navigate to lead details or open modal
+    router.push(`/leads/${lead.id}`);
   };
 
   const handleLeadAction = (action: string, lead: Lead) => {
-    console.log(`Lead action: ${action}`, lead);
-    // Handle lead actions (call, email, view details)
+    if (action === 'view') {
+      router.push(`/leads/${lead.id}`);
+    } else {
+      console.log(`Lead action: ${action}`, lead);
+    }
   };
 
   const handleAddLead = () => {

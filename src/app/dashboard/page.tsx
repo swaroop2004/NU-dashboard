@@ -9,6 +9,7 @@ import { FadeIn, SlideIn } from "@/components/ui/animations";
 import { Lead, Property, DashboardStats, Activity, LeadStatus, PropertyStatus, ActivityType } from '@/types';
 import { dataService } from '@/services/dataService';
 import { LeadTable } from '@/components/table';
+import { PropertyDetailsModal } from '@/components/PropertyDetailsModal';
 
 export default function DashboardPage() {
   const [stats, setStats] = useState<DashboardStats | null>(null);
@@ -16,6 +17,8 @@ export default function DashboardPage() {
   const [topProperties, setTopProperties] = useState<Property[]>([]);
   const [recentActivities, setRecentActivities] = useState<Activity[]>([]);
   const [loading, setLoading] = useState(true);
+  const [selectedProperty, setSelectedProperty] = useState<Property | null>(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
 
   useEffect(() => {
     loadDashboardData();
@@ -51,7 +54,8 @@ export default function DashboardPage() {
   };
 
   const handleViewProperty = (property: Property) => {
-    console.log('View property:', property);
+    setSelectedProperty(property);
+    setIsModalOpen(true);
   };
   return (
     <DashboardLayout>
@@ -297,6 +301,15 @@ export default function DashboardPage() {
         
       </div>
       
+      <PropertyDetailsModal
+        property={selectedProperty}
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        onEdit={(property) => {
+          console.log('Edit property:', property);
+          setIsModalOpen(false);
+        }}
+      />
     </DashboardLayout>
   );
 }

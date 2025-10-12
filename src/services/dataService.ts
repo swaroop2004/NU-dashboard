@@ -186,6 +186,27 @@ export class DataService {
       message: 'Leads retrieved successfully'
     };
   }
+  
+  async getLead(id: string): Promise<ApiResponse<Lead>> {
+    // Simulate API call delay
+    await new Promise(resolve => setTimeout(resolve, 500));
+    
+    const lead = mockLeads.find(lead => lead.id === id);
+    
+    if (!lead) {
+      return {
+        success: false,
+        data: {} as Lead,
+        error: 'Lead not found'
+      };
+    }
+    
+    return {
+      success: true,
+      data: lead,
+      message: 'Lead retrieved successfully'
+    };
+  }
 
   async getLeadById(id: string): Promise<ApiResponse<Lead>> {
     await new Promise(resolve => setTimeout(resolve, 300));
