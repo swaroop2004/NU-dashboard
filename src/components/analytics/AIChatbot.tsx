@@ -5,7 +5,9 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Send, X, Bot, User, TrendingUp, BarChart3, PieChart, Users, Mic, MicOff } from 'lucide-react';
+import { useToast } from "@/hooks/use-toast";
+import { geminiService } from '@/services/geminiService';
+import { Send, X, Bot, User, TrendingUp, BarChart3, PieChart, Users, Mic, MicOff, Loader2 } from 'lucide-react';
 
 interface Message {
   id: string;
@@ -40,9 +42,10 @@ export function AIChatbot({ isOpen, onClose, analyticsData }: AIChatbotProps) {
   const [isTyping, setIsTyping] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
   const [isTranscribing, setIsTranscribing] = useState(false);
+  const { toast } = useToast();
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
-  const audioChunksRef = useRef<Blob[]>([]);
+  const audioBlobRef = useRef<Blob | null>(null);
 
   useEffect(() => {
     if (scrollAreaRef.current) {
@@ -190,28 +193,54 @@ Feel free to ask any of these questions or request specific insights!`
 
   const startRecording = async () => {
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      const mediaRecorder = new MediaRecorder(stream);
+      // Configure audio constraints for better speech recognition
+      const stream = await navigator.mediaDevices.getUserMedia({ 
+        audio: {
+          channelCount: 1, // Mono for better speech recognition
+          sampleRate: 16000, // 16kHz is optimal for speech
+          sampleSize: 16,
+          echoCancellation: true,
+          noiseSuppression: true,
+          autoGainControl: true
+        } 
+      });
+      
+      const mediaRecorder = new MediaRecorder(stream, {
+        mimeType: 'audio/webm;codecs=opus', // Opus codec for better quality
+        audioBitsPerSecond: 128000 // Higher bitrate for better quality
+      });
+      
       mediaRecorderRef.current = mediaRecorder;
-      audioChunksRef.current = [];
+      const audioChunks: BlobPart[] = [];
 
       mediaRecorder.ondataavailable = (event) => {
         if (event.data.size > 0) {
-          audioChunksRef.current.push(event.data);
+          audioChunks.push(event.data);
         }
       };
 
-      mediaRecorder.onstop = async () => {
-        const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/wav' });
-        await transcribeAudio(audioBlob);
+      mediaRecorder.onstop = () => {
+        // Create audio blob with proper MIME type
+        const audioBlob = new Blob(audioChunks, { 
+          type: 'audio/webm;codecs=opus' 
+        });
+        audioBlobRef.current = audioBlob;
         stream.getTracks().forEach(track => track.stop());
       };
 
-      mediaRecorder.start();
+      mediaRecorder.start(1000); // Collect data every second
       setIsRecording(true);
+
+      // Stop recording after 15 seconds (reduced for better UX)
+      setTimeout(() => {
+        if (mediaRecorder.state === 'recording') {
+          mediaRecorder.stop();
+          setIsRecording(false);
+        }
+      }, 15000);
+
     } catch (error) {
       console.error('Error starting recording:', error);
-      // Fallback: add a message about microphone access
       const errorMessage: Message = {
         id: Date.now().toString(),
         role: 'assistant',
@@ -230,61 +259,6 @@ Feel free to ask any of these questions or request specific insights!`
     }
   };
 
-  const transcribeAudio = async (audioBlob: Blob) => {
-    setIsTranscribing(true);
-    
-    try {
-      // Simulate transcription with a delay
-      // In a real app, you would send this to a speech-to-text API
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      
-      // For demo purposes, we'll simulate some common analytics questions
-      const simulatedTranscriptions = [
-        "What's our conversion rate?",
-        "Which property is performing best?",
-        "Show me lead source insights",
-        "What's the trend in monthly leads?",
-        "How are we doing with property performance?",
-        "Tell me about our lead sources",
-        "Show me conversion analytics"
-      ];
-      
-      const randomTranscription = simulatedTranscriptions[Math.floor(Math.random() * simulatedTranscriptions.length)];
-      setInput(randomTranscription);
-      
-      // Add a message indicating transcription was successful
-      const transcriptionMessage: Message = {
-        id: Date.now().toString(),
-        role: 'assistant',
-        content: `🎤 **Audio transcribed:** "${randomTranscription}"\n\nPress Enter or click Send to ask this question!`,
-        timestamp: new Date(),
-        type: 'text'
-      };
-      setMessages(prev => [...prev, transcriptionMessage]);
-      
-    } catch (error) {
-      console.error('Error transcribing audio:', error);
-      const errorMessage: Message = {
-        id: Date.now().toString(),
-        role: 'assistant',
-        content: 'I\'m sorry, I had trouble transcribing your audio. Please try again or type your question.',
-        timestamp: new Date(),
-        type: 'text'
-      };
-      setMessages(prev => [...prev, errorMessage]);
-    } finally {
-      setIsTranscribing(false);
-    }
-  };
-
-  const toggleRecording = () => {
-    if (isRecording) {
-      stopRecording();
-    } else {
-      startRecording();
-    }
-  };
-
   const handleSend = async () => {
     if (!input.trim()) return;
 
@@ -300,22 +274,109 @@ Feel free to ask any of these questions or request specific insights!`
     setInput('');
     setIsTyping(true);
 
-    // Simulate AI response delay
-    setTimeout(() => {
-      const response = generateInsights(input);
+    try {
+      // Use Gemini API to generate analytics insights
+      const result = await geminiService.generateAnalyticsInsights(input, analyticsData);
       
-      const assistantMessage: Message = {
+      if (result.success && result.data) {
+        const assistantMessage: Message = {
+          id: (Date.now() + 1).toString(),
+          role: 'assistant',
+          content: result.data,
+          timestamp: new Date(),
+          type: 'insight'
+        };
+
+        setMessages(prev => [...prev, assistantMessage]);
+      } else {
+        // Fallback to local insight generation if API fails
+        const localResponse = generateInsights(input);
+        const fallbackMessage: Message = {
+          id: (Date.now() + 1).toString(),
+          role: 'assistant',
+          content: localResponse.content,
+          timestamp: new Date(),
+          type: localResponse.type
+        };
+
+        setMessages(prev => [...prev, fallbackMessage]);
+      }
+    } catch (error) {
+      console.error('Error generating insights:', error);
+      const errorMessage: Message = {
         id: (Date.now() + 1).toString(),
         role: 'assistant',
-        content: response.content,
+        content: 'I\'m sorry, I encountered an error while processing your request. Please try again or type a different question.',
         timestamp: new Date(),
-        type: response.type
+        type: 'text'
       };
-
-      setMessages(prev => [...prev, assistantMessage]);
+      setMessages(prev => [...prev, errorMessage]);
+    } finally {
       setIsTyping(false);
-    }, 1000);
+    }
   };
+
+  const handleVoiceRecording = async () => {
+    if (isRecording) {
+      mediaRecorderRef.current?.stop();
+      setIsRecording(false);
+      setIsTranscribing(true);
+      
+      // Process the audio with Gemini API
+        if (audioBlobRef.current) {
+          try {
+              // Check if audio blob is large enough (minimum 1KB)
+              if (audioBlobRef.current.size < 1024) {
+                toast({
+                  title: "Recording too short",
+                  description: "Please speak for a few seconds and try again.",
+                  variant: "destructive",
+                });
+                setIsTranscribing(false);
+                audioBlobRef.current = null;
+                return;
+              }
+
+            const result = await geminiService.transcribeAudio(audioBlobRef.current);
+          
+          if (result.success && result.data) {
+            setInput(result.data);
+            toast({
+              title: "Voice input processed",
+              description: "Your message has been transcribed successfully",
+            });
+            
+            // Automatically send the transcribed message
+            setTimeout(() => {
+              handleSend();
+            }, 500);
+          } else {
+            toast({
+              title: "Transcription failed",
+              description: result.error || "Failed to transcribe audio. Please try again.",
+              variant: "destructive",
+            });
+          }
+        } catch (error) {
+          console.error('Voice transcription error:', error);
+          toast({
+            title: "Transcription error",
+            description: "An error occurred while processing your voice input. Please try again.",
+            variant: "destructive",
+          });
+        } finally {
+          setIsTranscribing(false);
+          audioBlobRef.current = null;
+        }
+      } else {
+        setIsTranscribing(false);
+      }
+    } else {
+      startRecording();
+    }
+  };
+
+
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {
@@ -431,13 +492,19 @@ Feel free to ask any of these questions or request specific insights!`
                 disabled={isTyping || isRecording || isTranscribing}
               />
               <Button 
-                onClick={toggleRecording} 
+                onClick={handleVoiceRecording} 
                 disabled={isTyping || isTranscribing}
                 variant={isRecording ? "destructive" : "outline"}
                 title={isRecording ? "Stop recording" : "Start voice input"}
                 className="border-white/50 hover:bg-white/80 backdrop-blur-lg shadow-md px-2 md:px-3"
               >
-                {isRecording ? <MicOff className="h-3 w-3 md:h-4 md:w-4" /> : <Mic className="h-3 w-3 md:h-4 md:w-4" />}
+                {isTranscribing ? (
+                  <Loader2 className="h-3 w-3 md:h-4 md:w-4 animate-spin" />
+                ) : isRecording ? (
+                  <MicOff className="h-3 w-3 md:h-4 md:w-4" />
+                ) : (
+                  <Mic className="h-3 w-3 md:h-4 md:w-4" />
+                )}
               </Button>
               <Button onClick={handleSend} disabled={isTyping || !input.trim() || isRecording || isTranscribing} className="bg-blue-600 hover:bg-blue-700 shadow-md px-2 md:px-4">
                 <Send className="h-3 w-3 md:h-4 md:w-4" />

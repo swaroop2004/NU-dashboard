@@ -1,0 +1,107 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// -------------------- ENUMS --------------------
+enum VisitStatus {
+  BOOKED
+  COMPLETED
+  CANCELLED
+  PENDING
+}
+
+enum LeadStatus {
+  HOT
+  WARM
+  COLD
+}
+
+enum Source {
+  WEBSITE
+  REFERRAL
+  PROPERTY_PORTAL
+  OTHER
+}
+
+enum PropertyType {
+  APARTMENT
+  PENTHOUSE
+  STUDIO
+}
+
+enum PropertyStatus {
+  ACTIVE
+  PRELAUNCH
+  UNDER_CONSTRUCTION
+  SOLD_OUT
+}
+
+// -------------------- MODELS --------------------
+
+model UserProfile {
+  id             String    @id @default(cuid())
+  name           String
+  email          String    @unique
+  phone          String?   @unique
+  role           String?   // e.g. "Admin", "SalesRep", etc.
+  leadsAssigned  Lead[]    @relation("AssignedLeads")
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+}
+
+// Lead model
+model Lead {
+  id                     String         @id @default(cuid())
+  name                   String
+  email                  String?
+  phoneNumber            String?
+  companyName            String?
+  companySize            String?
+  companyIndustry        String?
+  jobRole                String?
+  preferences            Json?
+  source                 Source         @default(WEBSITE)
+  status                 LeadStatus     @default(WARM)
+  visitStatus            VisitStatus?   @default(PENDING)
+  
+  // Relationships
+  assignedTo             UserProfile?   @relation("AssignedLeads", fields: [assignedToId], references: [id])
+  assignedToId           String?
+  propertiesViewed       Property[]     @relation("LeadProperties")
+  
+  createdAt              DateTime       @default(now())
+  updatedAt              DateTime       @updatedAt
+}
+
+// Property model
+model Property {
+  id              String          @id @default(cuid())
+  name            String
+  type            PropertyType
+  price           Float
+  status          PropertyStatus   @default(ACTIVE)
+  location        String
+  description     String?
+  visits          Int              @default(0)
+  demos           Int              @default(0)
+  amenities       String[]         // e.g. ["Pool", "Gym", "Clubhouse"]
+  tokens          Int?      // for booking or NFT/property tokens
+  
+  // Relationships
+  leads            Lead[]          @relation("LeadProperties")
+  
+  createdAt        DateTime        @default(now())
+  updatedAt        DateTime        @updatedAt
+}
