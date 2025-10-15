@@ -3,10 +3,14 @@ import { NextResponse } from "next/server";
 
 export async function GET() {
   try {
-    await prisma.userProfile.findMany({
+    const users = await prisma.userProfile.findMany({
+      include: {
+        leadsAssigned: true, // Include assigned leads
+      },
     });
+    return NextResponse.json(users);
   } catch (error) {
-    console.error(error);
+    console.error("Error fetching users:", error);
     return NextResponse.json({ error: "Failed to fetch users" }, { status: 500 });
   }
 }

@@ -6,6 +6,7 @@ import { DashboardLayout } from "@/components/layout/dashboard-layout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { LeadTable } from "@/components/table/LeadTable";
+import { AddLeadModal } from "@/components/leads/AddLeadModal";
 import { dataService } from "@/services/dataService";
 import { Lead, LeadStatus, LeadSource } from '@/types';
 import { 
@@ -26,6 +27,7 @@ export default function LeadsPage() {
   const router = useRouter();
   const [leads, setLeads] = useState<Lead[]>([]);
   const [loading, setLoading] = useState(true);
+  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [filters, setFilters] = useState({
     status: 'all',
     source: 'all',
@@ -68,8 +70,31 @@ export default function LeadsPage() {
   };
 
   const handleAddLead = () => {
-    console.log('Add new lead');
-    // Open add lead modal or navigate to create page
+    setIsAddModalOpen(true);
+  };
+
+  const handleLeadAdded = () => {
+    // Refresh the leads data after successful creation
+    const fetchLeads = async () => {
+      try {
+        setLoading(true);
+        const response = await dataService.getLeads({
+          status: filters.status !== 'all' ? [filters.status as LeadStatus] : undefined,
+          source: filters.source !== 'all' ? [filters.source as LeadSource] : undefined,
+          search: filters.search || undefined
+        });
+        
+        if (response.success) {
+          setLeads(response.data);
+        }
+      } catch (error) {
+        console.error('Error fetching leads:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    fetchLeads();
   };
 
   const handleExport = () => {
@@ -164,6 +189,12 @@ export default function LeadsPage() {
           </CardContent>
         </Card>
       </div>
+      
+      <AddLeadModal
+        isOpen={isAddModalOpen}
+        onClose={() => setIsAddModalOpen(false)}
+        onLeadAdded={handleLeadAdded}
+      />
     </DashboardLayout>
   );
 }

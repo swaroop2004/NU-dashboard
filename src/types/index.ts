@@ -65,28 +65,21 @@ export interface Property extends BaseEntity {
   amenities?: string[];
   images?: string[];
   builder?: string;
-  possessionDate?: Date;
+  possessionDate?: string;
   reraNumber?: string;
 }
 
 export enum PropertyType {
-  APARTMENT = "Apartment",
-  VILLA = "Villa",
-  PENTHOUSE = "Penthouse",
-  STUDIO = "Studio",
-  DUPLEX = "Duplex",
-  ROW_HOUSE = "Row House",
-  COMMERCIAL = "Commercial",
-  LAND = "Land"
+  APARTMENT = "APARTMENT",
+  PENTHOUSE = "PENTHOUSE",
+  STUDIO = "STUDIO"
 }
 
 export enum PropertyStatus {
-  ACTIVE = "Active",
-  PRE_LAUNCH = "Pre-launch",
-  UNDER_CONSTRUCTION = "Under Construction",
-  READY_TO_MOVE = "Ready to Move",
-  SOLD_OUT = "Sold Out",
-  ON_HOLD = "On Hold"
+  ACTIVE = "ACTIVE",
+  PRELAUNCH = "PRELAUNCH",
+  UNDER_CONSTRUCTION = "UNDER_CONSTRUCTION",
+  SOLD_OUT = "SOLD_OUT"
 }
 
 export interface PriceRange {

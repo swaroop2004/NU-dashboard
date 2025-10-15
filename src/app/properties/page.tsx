@@ -8,6 +8,7 @@ import { PropertyTable } from "@/components/table";
 import { Property, PropertyStatus } from '@/types';
 import { dataService } from '@/services/dataService';
 import { PropertyDetailsModal } from '@/components/PropertyDetailsModal';
+import { AddPropertyModal } from '@/components/properties/AddPropertyModal';
 import { 
   ChevronLeft, 
   ChevronRight, 
@@ -22,6 +23,7 @@ export default function PropertiesPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedProperty, setSelectedProperty] = useState<Property | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
 
   useEffect(() => {
     loadProperties();
@@ -49,7 +51,11 @@ export default function PropertiesPage() {
   };
 
   const handleAddProperty = () => {
-    console.log('Add new property');
+    setIsAddModalOpen(true);
+  };
+
+  const handlePropertyAdded = () => {
+    loadProperties(); // Refresh the properties list
   };
 
   const handleFilter = () => {
@@ -134,6 +140,12 @@ export default function PropertiesPage() {
           console.log('Edit property:', property);
           setIsModalOpen(false);
         }}
+      />
+
+      <AddPropertyModal
+        isOpen={isAddModalOpen}
+        onClose={() => setIsAddModalOpen(false)}
+        onPropertyAdded={handlePropertyAdded}
       />
     </DashboardLayout>
   );

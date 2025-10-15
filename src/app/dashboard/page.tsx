@@ -278,7 +278,9 @@ export default function DashboardPage() {
                               }`}></div>
                               <div className="flex-1">
                                 <p className="text-sm font-medium">{activity.description}</p>
-                                <p className="text-xs text-gray-500">{activity.relatedEntity.name} - {activity.timestamp}</p>
+                                <p className="text-xs text-gray-500">
+                                  {activity.relatedEntity?.name || 'System'} - {new Date(activity.timestamp).toLocaleString()}
+                                </p>
                               </div>
                             </div>
                           ))}
