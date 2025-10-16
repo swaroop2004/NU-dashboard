@@ -96,7 +96,7 @@ export function PropertyDetailsModal({ property, isOpen, onClose, onEdit }: Prop
                         </div>
                       </div>
                       <div className="text-right">
-                        <div className="text-base sm:text-xl md:text-2xl font-bold">₹{property.price.toLocaleString()}</div>
+                        <div className="text-base sm:text-xl md:text-2xl font-bold">{property.price.toLocaleString()}</div>
                         <div className="text-xs sm:text-sm text-gray-500">{property.type}</div>
                       </div>
                     </div>

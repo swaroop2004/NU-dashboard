@@ -27,7 +27,7 @@ function transformDatabaseProperty(dbProperty: any): Property {
     name: dbProperty.name,
     location: dbProperty.location,
     type: dbProperty.type as PropertyType,
-    price: `$${dbProperty.price.toLocaleString()}`,
+    price: `₹${dbProperty.price.toLocaleString()}`,
     status: dbProperty.status as PropertyStatus,
     leads: dbProperty.leads?.length || 0,
     demoViews: dbProperty.demos || 0,
@@ -469,7 +469,7 @@ export class DataService {
         totalLeads: leads.length,
         hotLeads: leads.filter(l => l.status === 'Hot').length,
         totalProperties: properties.length,
-        activeProperties: properties.filter(p => p.status === 'Active').length,
+        activeProperties: properties.filter(p => p.status === PropertyStatus.ACTIVE).length,
         conversionRate: leads.length > 0 ? Math.round((leads.filter(l => l.status === 'Converted').length / leads.length) * 100) : 0,
         totalRevenue: 1250000, // This would come from a revenue tracking system
         monthlyGrowth: 12.5 // This would be calculated from historical data

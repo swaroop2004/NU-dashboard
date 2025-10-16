@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useToast } from "@/hooks/use-toast";
 import { geminiService } from '@/services/geminiService';
+import { saveAudioBlob, saveAudioToLocalStorage } from '@/lib/audioStorage';
 import { Send, X, Bot, User, TrendingUp, BarChart3, PieChart, Users, Mic, MicOff, Loader2 } from 'lucide-react';
 
 interface Message {
@@ -217,15 +218,42 @@ Feel free to ask any of these questions or request specific insights!`
         if (event.data.size > 0) {
           audioChunks.push(event.data);
         }
+        console.log('Audio chunk size:', audioChunks);
       };
 
-      mediaRecorder.onstop = () => {
+      mediaRecorder.onstop = async () => {
         // Create audio blob with proper MIME type
         const audioBlob = new Blob(audioChunks, { 
           type: 'audio/webm;codecs=opus' 
         });
         audioBlobRef.current = audioBlob;
         stream.getTracks().forEach(track => track.stop());
+        
+        // Save the audio blob to file and localStorage
+        try {
+          const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+          const filename = `audio-recording-${timestamp}.webm`;
+          
+          // Save as downloadable file
+          await saveAudioBlob(audioBlob, filename);
+          
+          // Also save to localStorage as backup
+          const storageKey = await saveAudioToLocalStorage(audioBlob);
+          
+          console.log(`Audio recording saved: ${filename} (${audioBlob.size} bytes)`);
+          
+          toast({
+            title: "Recording saved",
+            description: `Audio recording saved as ${filename}`,
+          });
+        } catch (error) {
+          console.error('Failed to save audio recording:', error);
+          toast({
+            title: "Save failed",
+            description: "Could not save audio recording to file",
+            variant: "destructive",
+          });
+        }
       };
 
       mediaRecorder.start(1000); // Collect data every second
