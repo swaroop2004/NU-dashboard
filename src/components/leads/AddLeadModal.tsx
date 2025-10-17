@@ -55,10 +55,176 @@ interface FormErrors {
   name?: string;
   email?: string;
   phoneNumber?: string;
+  companyName?: string;
+  companySize?: string;
+  companyIndustry?: string;
   source?: string;
   status?: string;
   assignedToId?: string;
 }
+
+const COMPANY_SIZE_OPTIONS = [
+  "2 - 10",
+  "11 - 50", 
+  "51 - 200",
+  "201 - 500",
+  "501 - 1000",
+  "1001 - 5000",
+  "5001 - 10000",
+  "10000+"
+];
+
+const INDUSTRY_OPTIONS = [
+  "Automotive",
+  "Accounting", 
+  "Agriculture",
+  "Airlines/Aviation",
+  "Alternative Dispute Resolution",
+  "Animation",
+  "Apparel & Fashion",
+  "Architecture & Planning",
+  "Arts & Crafts",
+  "Aviation & Aerospace",
+  "Banking",
+  "Biotechnology",
+  "Broadcast Media",
+  "Building Materials",
+  "Business Supplies & Equipment",
+  "Capital Markets",
+  "Ceramics & Concrete",
+  "Chemicals",
+  "Civic & Social Organization",
+  "Civil Engineering",
+  "Commercial Real Estate",
+  "Computer & Network Security",
+  "Computer Games",
+  "Computer Hardware",
+  "Computer Networking",
+  "Computer Software",
+  "Construction",
+  "Consumer Electronics",
+  "Consumer Goods",
+  "Cosmetics",
+  "Consumer Services",
+  "Dairy",
+  "Defense & Space",
+  "E-Learning",
+  "Education Management",
+  "Electrical/Electronic Manufacturing",
+  "Design",
+  "Entertainment",
+  "Environmental Services",
+  "Events Services",
+  "Executive Office",
+  "Government Relations",
+  "Graphic Design",
+  "Health, Wellness & Fitness",
+  "Higher Education",
+  "Government Administration",
+  "Hospital & Health Care",
+  "Hospitality",
+  "Human Resources",
+  "Glass, Ceramics & Concrete",
+  "Import & Export",
+  "Individual & Family Services",
+  "Industrial Automation",
+  "Information Services",
+  "Information Technology & Services",
+  "Insurance",
+  "International Affairs",
+  "Gambling & Casinos",
+  "International Trade & Development",
+  "Internet",
+  "Law Enforcement",
+  "Judiciary",
+  "Law Practice",
+  "Legal Services",
+  "Legislative Office",
+  "Leisure, Travel & Tourism",
+  "Libraries",
+  "Logistics & Supply Chain",
+  "Luxury Goods & Jewelry",
+  "Machinery",
+  "Management Consulting",
+  "Investment Management",
+  "Maritime",
+  "Market Research",
+  "Marketing & Advertising",
+  "Investment Banking",
+  "Mechanical or Industrial Engineering",
+  "Media Production",
+  "Medical Devices",
+  "Medical Practice",
+  "Performing Arts",
+  "Pharmaceuticals",
+  "Philanthropy",
+  "Photography",
+  "Paper & Forest Products",
+  "Plastics",
+  "Political Organization",
+  "Primary/Secondary Education",
+  "Printing",
+  "Professional Training & Coaching",
+  "Program Development",
+  "Public Policy",
+  "Public Relations & Communications",
+  "Packaging & Containers",
+  "Public Safety",
+  "Publishing",
+  "Railroad Manufacture",
+  "Package/Freight Delivery",
+  "Ranching",
+  "Real Estate",
+  "Recreational Facilities & Services",
+  "Religious Institutions",
+  "Renewables & Environment",
+  "Research",
+  "Restaurants",
+  "Outsourcing/Offshoring",
+  "Retail",
+  "Security & Investigations",
+  "Semiconductors",
+  "Shipbuilding",
+  "Online Media",
+  "Sporting Goods",
+  "Sports",
+  "Staffing & Recruiting",
+  "Supermarkets",
+  "Travel & Tourism",
+  "Utilities",
+  "Venture Capital & Private Equity",
+  "Veterinary",
+  "Warehousing",
+  "Wellness & Fitness",
+  "Transportation",
+  "Wholesale",
+  "Translation & Localization",
+  "Tobacco",
+  "Think Tanks",
+  "Telecommunications",
+  "Oil & Energy",
+  "Non-Profit Organization Management",
+  "Newspapers",
+  "Nanotechnology",
+  "Music",
+  "Museums & Institutions",
+  "Motion Pictures & Film",
+  "Mining & Metals",
+  "Military",
+  "Furniture",
+  "Fund-Raising",
+  "Food Production",
+  "Food & Beverages",
+  "Fishery",
+  "Fine Art",
+  "Mental Health Care",
+  "Financial Services",
+  "Textiles",
+  "Wine & Spirits",
+  "Writing & Editing",
+  "Facilities Services",
+  "Farming"
+];
 
 export function AddLeadModal({ isOpen, onClose, onLeadAdded }: AddLeadModalProps) {
   const { toast } = useToast();
@@ -66,6 +232,7 @@ export function AddLeadModal({ isOpen, onClose, onLeadAdded }: AddLeadModalProps
   const [errors, setErrors] = useState<FormErrors>({});
   const [users, setUsers] = useState<User[]>([]);
   const [isLoadingUsers, setIsLoadingUsers] = useState(false);
+  const [industrySearch, setIndustrySearch] = useState('');
   
   const [formData, setFormData] = useState<FormData>({
     name: '',
@@ -126,6 +293,18 @@ export function AddLeadModal({ isOpen, onClose, onLeadAdded }: AddLeadModalProps
       newErrors.phoneNumber = 'Phone number is required';
     } else if (!/^\+?[\d\s\-\(\)]{10,}$/.test(formData.phoneNumber)) {
       newErrors.phoneNumber = 'Please enter a valid phone number';
+    }
+    
+    if (!formData.companyName.trim()) {
+      newErrors.companyName = 'Company name is required';
+    }
+    
+    if (!formData.companySize) {
+      newErrors.companySize = 'Company size is required';
+    }
+    
+    if (!formData.companyIndustry) {
+      newErrors.companyIndustry = 'Industry is required';
     }
     
     if (!formData.source) {
@@ -248,6 +427,10 @@ export function AddLeadModal({ isOpen, onClose, onLeadAdded }: AddLeadModalProps
     }
   };
 
+  const filteredIndustries = INDUSTRY_OPTIONS.filter(industry =>
+    industry.toLowerCase().includes(industrySearch.toLowerCase())
+  );
+
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
@@ -340,14 +523,16 @@ export function AddLeadModal({ isOpen, onClose, onLeadAdded }: AddLeadModalProps
               
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="companyName">Company Name</Label>
+                  <Label htmlFor="companyName" className={errors.companyName ? "text-red-500" : ""}>
+                    Company Name * {errors.companyName && <span className="text-red-500 text-sm">({errors.companyName})</span>}
+                  </Label>
                   <div className="relative">
                     <Building className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
                     <Input
                       id="companyName"
                       value={formData.companyName}
                       onChange={(e) => handleInputChange('companyName', e.target.value)}
-                      className="pl-10"
+                      className={`pl-10 ${errors.companyName ? "border-red-500" : ""}`}
                       placeholder="Enter company name"
                       disabled={isSubmitting}
                     />
@@ -355,33 +540,66 @@ export function AddLeadModal({ isOpen, onClose, onLeadAdded }: AddLeadModalProps
                 </div>
                 
                 <div className="space-y-2">
-                  <Label htmlFor="companySize">Company Size</Label>
-                  <div className="relative">
-                    <Users className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
-                    <Input
-                      id="companySize"
-                      value={formData.companySize}
-                      onChange={(e) => handleInputChange('companySize', e.target.value)}
-                      className="pl-10"
-                      placeholder="e.g., 50-100, 100-500"
-                      disabled={isSubmitting}
-                    />
-                  </div>
+                  <Label htmlFor="companySize" className={errors.companySize ? "text-red-500" : ""}>
+                    Company Size * {errors.companySize && <span className="text-red-500 text-sm">({errors.companySize})</span>}
+                  </Label>
+                  <Select
+                    value={formData.companySize}
+                    onValueChange={(value) => handleInputChange('companySize', value)}
+                    disabled={isSubmitting}
+                  >
+                    <SelectTrigger id="companySize" className={errors.companySize ? "border-red-500" : ""}>
+                      <SelectValue placeholder="Select company size" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {COMPANY_SIZE_OPTIONS.map((size) => (
+                        <SelectItem key={size} value={size}>
+                          {size}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
                 
                 <div className="space-y-2 md:col-span-2">
-                  <Label htmlFor="companyIndustry">Industry</Label>
-                  <div className="relative">
-                    <MapPin className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
-                    <Input
-                      id="companyIndustry"
-                      value={formData.companyIndustry}
-                      onChange={(e) => handleInputChange('companyIndustry', e.target.value)}
-                      className="pl-10"
-                      placeholder="Enter industry type"
-                      disabled={isSubmitting}
-                    />
-                  </div>
+                  <Label htmlFor="companyIndustry" className={errors.companyIndustry ? "text-red-500" : ""}>
+                    Industry * {errors.companyIndustry && <span className="text-red-500 text-sm">({errors.companyIndustry})</span>}
+                  </Label>
+                  <Select
+                    value={formData.companyIndustry}
+                    onValueChange={(value) => {
+                      handleInputChange('companyIndustry', value);
+                      setIndustrySearch(''); // Clear search when selection is made
+                    }}
+                    disabled={isSubmitting}
+                  >
+                    <SelectTrigger id="companyIndustry" className={errors.companyIndustry ? "border-red-500" : ""}>
+                      <SelectValue placeholder="Select industry" />
+                    </SelectTrigger>
+                    <SelectContent className="max-h-[300px]">
+                      {/* Search Input */}
+                      <div className="sticky top-0 bg-white z-10 p-2 border-b">
+                        <Input
+                          placeholder="Search industries..."
+                          value={industrySearch}
+                          onChange={(e) => setIndustrySearch(e.target.value)}
+                          className="text-sm"
+                          onKeyDown={(e) => e.stopPropagation()} // Prevent dropdown from closing
+                        />
+                      </div>
+                      {filteredIndustries.length > 0 ? (
+                        filteredIndustries.map((industry) => (
+                          <SelectItem key={industry} value={industry}>
+                            {industry}
+                          </SelectItem>
+                        ))
+                      ) : (
+                        <div className="px-2 py-3 text-sm text-gray-500 text-center">
+                          No industries found
+                        </div>
+                      )}
+                    </SelectContent>
+                  </Select>
                 </div>
               </div>
             </div>

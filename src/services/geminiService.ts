@@ -30,54 +30,52 @@ export class GeminiService {
   }
 
   /**
-   * Convert audio blob to text using Gemini 1.5 Pro API
+   * Convert audio blob to text using our transcription service with Gemini API
    */
   async transcribeAudio(audioBlob: Blob): Promise<ApiResponse<string>> {
-    if (!this.apiKey) {
-      return {
-        success: false,
-        data: '',
-        error: 'Gemini API key not configured. Please contact support.'
-      };
-    }
-
     try {
-      // Convert audio to base64
-      const base64Audio = await this.blobToBase64(audioBlob);
+      // Create form data for the transcription endpoint
+      const formData = new FormData();
+      
+      // Create a filename for the audio file
+      const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+      const filename = `audio-recording-${timestamp}.webm`;
+      
+      // Create a File object from the blob
+      const audioFile = new File([audioBlob], filename, { 
+        type: audioBlob.type || 'audio/webm',
+        lastModified: Date.now()
+      });
+      
+      formData.append('audio', audioFile);
+      formData.append('filename', filename);
 
-      // Gemini 1.5 Pro supports inline audio data
-      const requestBody = {
-        contents: [
-          {
-            parts: [
-              { text: "Transcribe the following audio to text:" },
-              {
-                inlineData: {
-                  data: base64Audio.split(',')[1], // Remove data URL prefix
-                  mimeType: audioBlob.type || 'audio/webm'
-                }
-              }
-            ]
-          }
-        ]
-      };
+      // Call our transcription endpoint
+      const response = await fetch('/api/audio/transcribe', {
+        method: 'POST',
+        body: formData,
+        // No headers needed - FormData sets appropriate headers automatically
+      });
 
-      // Use the correct model (2.5-flash supports audio)
-      const response = await this.makeApiCall(
-        '/models/gemini-2.5-flash:generateContent',
-        requestBody
-      );
-
-      if (!response.success) {
-        return response;
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ error: 'Unknown error' }));
+        throw new Error(`Transcription failed: ${errorData.error || 'Unknown error'}`);
       }
 
-      const transcribedText = this.extractTextFromResponse(response.data);
+      const result = await response.json();
+
+      if (!result.success) {
+        return {
+          success: false,
+          data: '',
+          error: result.error || 'Transcription failed'
+        };
+      }
 
       return {
         success: true,
-        data: transcribedText,
-        message: 'Audio transcribed successfully'
+        data: result.transcription,
+        message: result.message || 'Audio transcribed successfully'
       };
     } catch (error) {
       console.error('Audio transcription error:', error);
