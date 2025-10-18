@@ -29,7 +29,7 @@ export default function DashboardPage() {
       setLoading(true);
       const [statsData, leadsData, propertiesData, activitiesData] = await Promise.all([
         dataService.getDashboardStats(),
-        dataService.getLeads({ status: [LeadStatus.HOT, LeadStatus.WARM] }),
+        dataService.getLeads({ status: [LeadStatus.HOT] }), // Only HOT leads for High Intent section
         dataService.getProperties({ status: [PropertyStatus.ACTIVE] }),
         dataService.getActivities(8)
       ]);
@@ -157,27 +157,46 @@ export default function DashboardPage() {
               </div>
             </SlideIn>
 
-            {/* High Intent Leads */}
-            <SlideIn direction="right" delay={0.3}>
-              <div>
-                <div className="flex justify-between items-center mb-4">
-                  <h2 className="text-xl font-bold">High Intent Leads</h2>
-                  <a href="/leads" className="text-sm text-gray-500 hover:text-blue-600 transition-colors">view all</a>
-                </div>
-                <div className="bg-white p-4 rounded-lg shadow-sm">
-                  <LeadTable
-                    leads={highIntentLeads.slice(0, 8)}
-                    loading={loading}
-                    onLeadClick={handleViewLead}
-                    onLeadAction={(action, lead) => {
-                      if (action === 'view') handleViewLead(lead);
-                      if (action === 'edit') handleEditLead(lead);
-                    }}
-                    className="compact"
-                  />
-                </div>
-              </div>
-            </SlideIn>
+            {/* High Intent Leads - Hot Leads Only */}
+            {/* High Intent Leads - Hot Leads Only */}
+<SlideIn direction="right" delay={0.3}>
+  <div>
+    <div className="flex justify-between items-center mb-4">
+      <div className="flex items-center gap-2">
+        <h2 className="text-xl font-bold">Hot Leads</h2>
+        <span className="bg-red-100 text-red-800 text-xs font-medium px-2.5 py-0.5 rounded-full">
+          High Priority
+        </span>
+      </div>
+      <a href="/leads" className="text-sm text-gray-500 hover:text-blue-600 transition-colors">view all</a>
+    </div>
+    <div className="bg-white p-4 rounded-lg shadow-sm border border-red-100">
+      {highIntentLeads.length === 0 && !loading ? (
+        <div className="text-center py-8 text-gray-500">
+          <div className="w-12 h-12 mx-auto mb-2 bg-red-100 rounded-full flex items-center justify-center">
+            <svg className="w-6 h-6 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
+            </svg>
+          </div>
+          <p className="text-sm">No hot leads at the moment</p>
+          <p className="text-xs mt-1">Check back later for new high-intent leads</p>
+        </div>
+      ) : (
+        <LeadTable
+          leads={highIntentLeads.slice(0, 8)}
+          loading={loading}
+          onLeadClick={handleViewLead}
+          onLeadAction={(action, lead) => {
+            if (action === 'view') handleViewLead(lead);
+            if (action === 'edit') handleEditLead(lead);
+          }}
+          className="compact"
+        />
+      )}
+    </div>
+  </div>
+</SlideIn>
+
           </div>
 
           {/* Top Performing Properties - Fixed right sidebar spanning full height */}

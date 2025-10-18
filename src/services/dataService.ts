@@ -54,7 +54,22 @@ export class DataService {
   // Lead-related methods
   async getLeads(filters?: LeadFilters): Promise<ApiResponse<Lead[]>> {
     try {
-      const response = await fetch(`${this.baseUrl}/leads`);
+      // Build query parameters from filters
+      const queryParams = new URLSearchParams();
+      
+      if (filters) {
+        if (filters.status && filters.status.length > 0) {
+          queryParams.append('status', filters.status.join(','));
+        }
+        
+        // Note: Other filters like source, priority, search would need API support
+        // For now, we'll handle them client-side as before
+      }
+      
+      const queryString = queryParams.toString();
+      const url = queryString ? `${this.baseUrl}/leads?${queryString}` : `${this.baseUrl}/leads`;
+      
+      const response = await fetch(url);
       
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
@@ -65,14 +80,8 @@ export class DataService {
       // Transform database leads to frontend format
       let leads = dbLeads.map(transformDatabaseLead);
       
-      // Apply filters if provided
+      // Apply remaining filters client-side (for filters not supported by API yet)
       if (filters) {
-        if (filters.status && filters.status.length > 0) {
-          leads = leads.filter((lead: Lead) =>
-            filters.status!.includes(lead.status as LeadStatus)
-          );
-        }
-        
         if (filters.source && filters.source.length > 0) {
           leads = leads.filter((lead: Lead) =>
             filters.source!.includes(lead.source as LeadSource)

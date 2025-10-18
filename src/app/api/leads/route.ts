@@ -1,9 +1,26 @@
 import { prisma } from "@/lib/prisma";
 import { NextResponse } from "next/server";
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
+    const { searchParams } = new URL(request.url);
+    const status = searchParams.get('status');
+    
+    let whereClause = {};
+    
+    // Filter by status if provided
+    if (status) {
+      const statuses = status.split(',').map(s => s.toUpperCase());
+      whereClause = {
+        ...whereClause,
+        status: {
+          in: statuses
+        }
+      };
+    }
+    
     const leads = await prisma.lead.findMany({
+      where: whereClause,
       include: {
         assignedTo: true,          // sales rep
         propertiesViewed: true,    // related properties
