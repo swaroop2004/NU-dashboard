@@ -7,7 +7,6 @@ import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useToast } from "@/hooks/use-toast";
 import { geminiService } from '@/services/geminiService';
-import { saveAudioBlob, saveAudioToLocalStorage } from '@/lib/audioStorage';
 import { Send, X, Bot, User, TrendingUp, BarChart3, PieChart, Users, Mic, MicOff, Loader2 } from 'lucide-react';
 
 interface Message {
@@ -43,10 +42,11 @@ export function AIChatbot({ isOpen, onClose, analyticsData }: AIChatbotProps) {
   const [isTyping, setIsTyping] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
   const [isTranscribing, setIsTranscribing] = useState(false);
+  const [transcript, setTranscript] = useState('');
   const { toast } = useToast();
   const scrollAreaRef = useRef<HTMLDivElement>(null);
-  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
-  const audioBlobRef = useRef<Blob | null>(null);
+  const recognitionRef = useRef<SpeechRecognition | null>(null);
+  const isSpeechRecognitionSupported = typeof window !== 'undefined' && ('SpeechRecognition' in window || 'webkitSpeechRecognition' in window);
 
   useEffect(() => {
     if (scrollAreaRef.current) {
@@ -192,99 +192,158 @@ Feel free to ask any of these questions or request specific insights!`
     };
   };
 
-  const startRecording = async () => {
+  const startSpeechRecognition = () => {
+    if (!isSpeechRecognitionSupported) {
+      toast({
+        title: "Speech recognition not supported",
+        description: "Your browser doesn't support speech recognition. Please use a modern browser like Chrome or Edge.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     try {
-      // Configure audio constraints for better speech recognition
-      const stream = await navigator.mediaDevices.getUserMedia({ 
-        audio: {
-          channelCount: 1, // Mono for better speech recognition
-          sampleRate: 16000, // 16kHz is optimal for speech
-          sampleSize: 16,
-          echoCancellation: true,
-          noiseSuppression: true,
-          autoGainControl: true
-        } 
-      });
+      // Initialize speech recognition
+      const SpeechRecognition = window.SpeechRecognition || (window as any).webkitSpeechRecognition;
+      const recognition = new SpeechRecognition();
       
-      const mediaRecorder = new MediaRecorder(stream, {
-        mimeType: 'audio/webm;codecs=opus', // Opus codec for better quality
-        audioBitsPerSecond: 128000 // Higher bitrate for better quality
-      });
+      recognition.continuous = true;
+      recognition.interimResults = true;
+      recognition.lang = 'en-US';
       
-      mediaRecorderRef.current = mediaRecorder;
-      const audioChunks: BlobPart[] = [];
-
-      mediaRecorder.ondataavailable = (event) => {
-        if (event.data.size > 0) {
-          audioChunks.push(event.data);
-        }
-        console.log('Audio chunk size:', audioChunks);
-      };
-
-      mediaRecorder.onstop = async () => {
-        // Create audio blob with proper MIME type
-        const audioBlob = new Blob(audioChunks, { 
-          type: 'audio/webm;codecs=opus' 
+      recognitionRef.current = recognition;
+      
+      recognition.onstart = () => {
+        setIsRecording(true);
+        setTranscript('');
+        toast({
+          title: "Listening...",
+          description: "Speak now - I'm listening to you!",
         });
-        audioBlobRef.current = audioBlob;
-        stream.getTracks().forEach(track => track.stop());
+      };
+
+      // recognition.onresult = (event: SpeechRecognitionEvent) => {
+      //   let interimTranscript = '';
+      //   let finalTranscript = '';
+
+      //   for (let i = event.resultIndex; i < event.results.length; i++) {
+      //     const transcript = event.results[i][0].transcript;
+      //     if (event.results[i].isFinal) {
+      //       finalTranscript += transcript + ' ';
+      //     } else {
+      //       interimTranscript += transcript;
+      //     }
+      //   }
+
+      //   // Update the input field with real-time transcription
+      //   if (finalTranscript) {
+      //     setInput(prev => prev + finalTranscript);
+      //     setTranscript('');
+      //   } else if (interimTranscript) {
+      //     setTranscript(interimTranscript);
+      //   }
+      // };
+
+      
+  recognition.onresult = (event: SpeechRecognitionEvent) => {
+  let finalText = transcript
+  let interim = ''
+  let maxConfidence = 0
+
+  for (let i = event.resultIndex; i < event.results.length; i++) {
+    const result = event.results[i]
+    const currentTranscript = result[0].transcript.trim()
+
+    if (result.isFinal) {
+      // Avoid duplicate additions
+      if (!finalText.endsWith(currentTranscript)) {
+        finalText += (finalText ? ' ' : '') + currentTranscript
+        maxConfidence = Math.max(maxConfidence, result[0].confidence || 0)
+      }
+    } else {
+      interim += currentTranscript + ' '
+    }
+  }
+
+  finalText = finalText.trim()
+  interim = interim.trim()
+
+  setTranscript(interim)            // interim shown live below input
+  setInput(finalText)               // update input only with finalized transcript
+}
+
+
+
+
+      recognition.onerror = (event: SpeechRecognitionErrorEvent) => {
+        console.error('Speech recognition error:', event.error);
         
-        // Save the audio blob to file and localStorage
-        try {
-          const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
-          const filename = `audio-recording-${timestamp}.webm`;
-          
-          // Save as downloadable file
-          await saveAudioBlob(audioBlob, filename);
-          
-          // Also save to localStorage as backup
-          const storageKey = await saveAudioToLocalStorage(audioBlob);
-          
-          console.log(`Audio recording saved: ${filename} (${audioBlob.size} bytes)`);
-          
-          toast({
-            title: "Recording saved",
-            description: `Audio recording saved as ${filename}`,
-          });
-        } catch (error) {
-          console.error('Failed to save audio recording:', error);
-          toast({
-            title: "Save failed",
-            description: "Could not save audio recording to file",
-            variant: "destructive",
-          });
+        let errorMessage = 'Speech recognition error';
+        switch (event.error) {
+          case 'no-speech':
+            errorMessage = 'No speech was detected. Please try speaking again.';
+            break;
+          case 'audio-capture':
+            errorMessage = 'Microphone not available. Please check your microphone settings.';
+            break;
+          case 'not-allowed':
+            errorMessage = 'Microphone access denied. Please allow microphone permissions.';
+            break;
+          default:
+            errorMessage = `Speech recognition error: ${event.error}`;
+        }
+
+        toast({
+          title: "Recognition Error",
+          description: errorMessage,
+          variant: "destructive",
+        });
+        
+        stopSpeechRecognition();
+      };
+
+      recognition.onend = () => {
+        if (isRecording) {
+          // If recognition ended unexpectedly, try to restart
+          try {
+            recognition.start();
+          } catch (error) {
+            stopSpeechRecognition();
+          }
         }
       };
 
-      mediaRecorder.start(1000); // Collect data every second
-      setIsRecording(true);
-
-      // Stop recording after 15 seconds (reduced for better UX)
-      setTimeout(() => {
-        if (mediaRecorder.state === 'recording') {
-          mediaRecorder.stop();
-          setIsRecording(false);
-        }
-      }, 15000);
+      recognition.start();
 
     } catch (error) {
-      console.error('Error starting recording:', error);
-      const errorMessage: Message = {
-        id: Date.now().toString(),
-        role: 'assistant',
-        content: 'I\'m sorry, I couldn\'t access your microphone. Please ensure you\'ve granted microphone permissions and try again. You can still type your questions!',
-        timestamp: new Date(),
-        type: 'text'
-      };
-      setMessages(prev => [...prev, errorMessage]);
+      console.error('Error starting speech recognition:', error);
+      toast({
+        title: "Recognition Failed",
+        description: "Failed to start speech recognition. Please try again.",
+        variant: "destructive",
+      });
+      setIsRecording(false);
     }
   };
 
-  const stopRecording = () => {
-    if (mediaRecorderRef.current && isRecording) {
-      mediaRecorderRef.current.stop();
-      setIsRecording(false);
+  const stopSpeechRecognition = () => {
+    if (recognitionRef.current) {
+      try {
+        recognitionRef.current.stop();
+      } catch (error) {
+        console.error('Error stopping recognition:', error);
+      }
+      recognitionRef.current = null;
     }
+    setIsRecording(false);
+    setTranscript('');
+    
+    // If we have a transcript, automatically send it
+    // if (input.trim()) {
+    //   setTimeout(() => {
+    //     handleSend();
+    //   }, 300);
+    // }
   };
 
   const handleSend = async () => {
@@ -344,63 +403,11 @@ Feel free to ask any of these questions or request specific insights!`
     }
   };
 
-  const handleVoiceRecording = async () => {
+  const handleVoiceRecording = () => {
     if (isRecording) {
-      mediaRecorderRef.current?.stop();
-      setIsRecording(false);
-      setIsTranscribing(true);
-      
-      // Process the audio with Gemini API
-        if (audioBlobRef.current) {
-          try {
-              // Check if audio blob is large enough (minimum 1KB)
-              if (audioBlobRef.current.size < 1024) {
-                toast({
-                  title: "Recording too short",
-                  description: "Please speak for a few seconds and try again.",
-                  variant: "destructive",
-                });
-                setIsTranscribing(false);
-                audioBlobRef.current = null;
-                return;
-              }
-
-            const result = await geminiService.transcribeAudio(audioBlobRef.current);
-          
-          if (result.success && result.data) {
-            setInput(result.data);
-            toast({
-              title: "Voice input processed",
-              description: "Your message has been transcribed successfully",
-            });
-            
-            // Automatically send the transcribed message
-            setTimeout(() => {
-              handleSend();
-            }, 500);
-          } else {
-            toast({
-              title: "Transcription failed",
-              description: result.error || "Failed to transcribe audio. Please try again.",
-              variant: "destructive",
-            });
-          }
-        } catch (error) {
-          console.error('Voice transcription error:', error);
-          toast({
-            title: "Transcription error",
-            description: "An error occurred while processing your voice input. Please try again.",
-            variant: "destructive",
-          });
-        } finally {
-          setIsTranscribing(false);
-          audioBlobRef.current = null;
-        }
-      } else {
-        setIsTranscribing(false);
-      }
+      stopSpeechRecognition();
     } else {
-      startRecording();
+      startSpeechRecognition();
     }
   };
 
@@ -511,14 +518,21 @@ Feel free to ask any of these questions or request specific insights!`
           
           <div className="border-t border-white/40 p-4 md:p-6 bg-white/40 backdrop-blur-md">
             <div className="flex gap-2 md:gap-3 max-w-4xl mx-auto">
-              <Input
-                value={input}
-                onChange={(e) => setInput(e.target.value)}
-                onKeyPress={handleKeyPress}
-                placeholder={isRecording ? "🎤 Recording... Click mic to stop" : isTranscribing ? "📝 Transcribing audio..." : "Ask me about your analytics data..."}
-                className="flex-1 bg-white/70 backdrop-blur-lg border-white/50 focus:border-blue-400 focus:ring-blue-400 shadow-md"
-                disabled={isTyping || isRecording || isTranscribing}
-              />
+              <div className="flex-1 relative">
+                <Input
+                  value={input}
+                  onChange={(e) => setInput(e.target.value)}
+                  onKeyPress={handleKeyPress}
+                  placeholder={isRecording ? "🎤 Listening... Speak now" : "Ask me about your analytics data..."}
+                  className="w-full bg-white/70 backdrop-blur-lg border-white/50 focus:border-blue-400 focus:ring-blue-400 shadow-md"
+                  disabled={isTyping || isRecording || isTranscribing}
+                />
+                {transcript && (
+                  <div className="absolute bottom-0 left-0 right-0 bg-blue-100/80 backdrop-blur-sm text-blue-800 text-xs p-1 px-3 rounded-b-md border-t border-blue-200/50">
+                    🎤 {transcript}
+                  </div>
+                )}
+              </div>
               <Button 
                 onClick={handleVoiceRecording} 
                 disabled={isTyping || isTranscribing}
@@ -540,16 +554,9 @@ Feel free to ask any of these questions or request specific insights!`
             </div>
             
             {isRecording && (
-              <div className="flex items-center gap-2 mt-2 md:mt-3 text-xs md:text-sm text-red-600 font-medium">
-                <div className="w-1.5 h-1.5 md:w-2 md:h-2 bg-red-500 rounded-full animate-pulse"></div>
-                Recording... Click the microphone again to stop
-              </div>
-            )}
-            
-            {isTranscribing && (
-              <div className="flex items-center gap-2 mt-2 md:mt-3 text-xs md:text-sm text-blue-600 font-medium">
-                <div className="w-1.5 h-1.5 md:w-2 md:h-2 bg-blue-500 rounded-full animate-bounce"></div>
-                Transcribing your audio...
+              <div className="flex items-center gap-2 mt-2 md:mt-3 text-xs md:text-sm text-green-600 font-medium">
+                <div className="w-1.5 h-1.5 md:w-2 md:h-2 bg-green-500 rounded-full animate-pulse"></div>
+                Listening... Speak now. Click the microphone again to stop
               </div>
             )}
             
