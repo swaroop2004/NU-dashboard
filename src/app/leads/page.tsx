@@ -7,12 +7,14 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { LeadTable } from "@/components/table/LeadTable";
 import { AddLeadModal } from "@/components/leads/AddLeadModal";
+import { AILeadsModal } from "@/components/leads/AILeadsModal";
 import { dataService } from "@/services/dataService";
 import { Lead, LeadStatus, LeadSource } from '@/types';
 import { 
   Filter, 
   Download,
-  Plus
+  Plus,
+  Sparkles
 } from 'lucide-react';
 import {
   Select,
@@ -28,6 +30,7 @@ export default function LeadsPage() {
   const [leads, setLeads] = useState<Lead[]>([]);
   const [loading, setLoading] = useState(true);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [isAILeadsModalOpen, setIsAILeadsModalOpen] = useState(false);
   const [filters, setFilters] = useState({
     status: 'all',
     source: 'all',
@@ -114,9 +117,9 @@ export default function LeadsPage() {
             </p>
           </div>
           <div className="flex items-center gap-2">
-            <Button variant="outline" size="sm" onClick={handleExport}>
-              <Download className="h-4 w-4 mr-2" />
-              Export
+            <Button variant="outline" size="sm" onClick={() => setIsAILeadsModalOpen(true)}>
+              <Sparkles className="h-4 w-4 mr-2" />
+              AI Leads
             </Button>
             <Button size="sm" onClick={handleAddLead}>
               <Plus className="h-4 w-4 mr-2" />
@@ -194,6 +197,11 @@ export default function LeadsPage() {
         isOpen={isAddModalOpen}
         onClose={() => setIsAddModalOpen(false)}
         onLeadAdded={handleLeadAdded}
+      />
+      
+      <AILeadsModal
+        isOpen={isAILeadsModalOpen}
+        onClose={() => setIsAILeadsModalOpen(false)}
       />
     </DashboardLayout>
   );
