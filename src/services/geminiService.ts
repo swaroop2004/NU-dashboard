@@ -1,21 +1,5 @@
 import { ApiResponse } from '@/types';
 
-interface GeminiAudioResponse {
-  text: string;
-  confidence: number;
-  language: string;
-  duration: number;
-}
-
-interface GeminiTextResponse {
-  text: string;
-  usage: {
-    promptTokens: number;
-    completionTokens: number;
-    totalTokens: number;
-  };
-}
-
 export class GeminiService {
   private apiKey: string;
   private baseUrl: string;
@@ -198,15 +182,6 @@ Provide clear, data-driven insights based on the question. Format your response 
       data: null,
       error: 'Max retries exceeded'
     };
-  }
-
-  private blobToBase64(blob: Blob): Promise<string> {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onloadend = () => resolve(reader.result as string);
-      reader.onerror = reject;
-      reader.readAsDataURL(blob);
-    });
   }
 
   private extractTextFromResponse(response: any): string {
