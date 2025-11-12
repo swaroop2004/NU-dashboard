@@ -77,8 +77,9 @@ export async function POST(request: NextRequest) {
       hasPhone: true,
       includeSimilarTitles: true,
       personLocationCountryIncludes: ['India'],
+      personLocationCityIncludes: ['Pune'],
       resetSavedProgress: false,
-      totalResults: body.totalResults
+      totalResults: body.totalResults 
     };
 
     // Call Apify API

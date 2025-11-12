@@ -23,18 +23,28 @@ enum VisitStatus {
   PENDING
 }
 
-enum LeadStatus {
-  HOT
-  WARM
-  COLD
-}
-
 enum Source {
   WEBSITE
   REFERRAL
   PROPERTY_PORTAL
+  SOCIAL_MEDIA
+  WALK_IN
+  CALL
+  EMAIL
   OTHER
 }
+
+enum LeadStatus {
+  COLD
+  HOT
+  WARM
+  NEW
+  FOLLOW_UP
+  LOST
+  NURTURED
+  CONVERTED
+}
+
 
 enum PropertyType {
   APARTMENT
@@ -69,6 +79,7 @@ model Lead {
   email                  String?
   phoneNumber            String?
   companyName            String?
+  city                   String?
   companySize            String?
   companyIndustry        String?
   jobRole                String?

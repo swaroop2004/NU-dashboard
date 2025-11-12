@@ -42,6 +42,7 @@ interface FormData {
   email: string;
   phoneNumber: string;
   companyName: string;
+  city: string;
   companySize: string;
   companyIndustry: string;
   jobRole: string;
@@ -234,11 +235,18 @@ export function AddLeadModal({ isOpen, onClose, onLeadAdded }: AddLeadModalProps
   const [isLoadingUsers, setIsLoadingUsers] = useState(false);
   const [industrySearch, setIndustrySearch] = useState('');
   
+  const capitalizeFirst = (value: string) => {
+    const trimmed = value.trim();
+    if (!trimmed) return '';
+    return trimmed.charAt(0).toUpperCase() + trimmed.slice(1);
+  };
+  
   const [formData, setFormData] = useState<FormData>({
     name: '',
     email: '',
     phoneNumber: '',
     companyName: '',
+    city: '',
     companySize: '',
     companyIndustry: '',
     jobRole: '',
@@ -344,6 +352,7 @@ export function AddLeadModal({ isOpen, onClose, onLeadAdded }: AddLeadModalProps
         email: formData.email.trim(),
         phoneNumber: formData.phoneNumber.trim(),
         companyName: formData.companyName.trim(),
+        city: formData.city.trim() ? capitalizeFirst(formData.city) : undefined,
         companySize: formData.companySize.trim(),
         companyIndustry: formData.companyIndustry.trim(),
         jobRole: formData.jobRole.trim(),
@@ -393,6 +402,7 @@ export function AddLeadModal({ isOpen, onClose, onLeadAdded }: AddLeadModalProps
         email: '',
         phoneNumber: '',
         companyName: '',
+        city: '',
         companySize: '',
         companyIndustry: '',
         jobRole: '',
@@ -539,6 +549,21 @@ export function AddLeadModal({ isOpen, onClose, onLeadAdded }: AddLeadModalProps
                   </div>
                 </div>
                 
+                <div className="space-y-2">
+                  <Label htmlFor="city">City</Label>
+                  <div className="relative">
+                    <MapPin className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+                    <Input
+                      id="city"
+                      value={formData.city}
+                      onChange={(e) => handleInputChange('city', capitalizeFirst(e.target.value))}
+                      className="pl-10"
+                      placeholder="Enter city"
+                      disabled={isSubmitting}
+                    />
+                  </div>
+                </div>
+
                 <div className="space-y-2">
                   <Label htmlFor="companySize" className={errors.companySize ? "text-red-500" : ""}>
                     Company Size * {errors.companySize && <span className="text-red-500 text-sm">({errors.companySize})</span>}

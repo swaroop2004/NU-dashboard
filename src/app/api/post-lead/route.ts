@@ -9,6 +9,7 @@ export async function POST(req: Request) {
     const {
       name,
       email,
+      city, 
       phoneNumber,
       companyName,
       companySize,
@@ -47,6 +48,7 @@ export async function POST(req: Request) {
       data: {
         name,
         email,
+        city,
         phoneNumber,
         companyName,
         companySize,

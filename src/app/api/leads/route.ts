@@ -10,7 +10,8 @@ export async function GET(request: Request) {
     
     // Filter by status if provided
     if (status) {
-      const statuses = status.split(',').map(s => s.toUpperCase());
+      const normalizeEnum = (s: string) => s.trim().toUpperCase().replace(/[\s-]+/g, '_');
+      const statuses = status.split(',').map(s => normalizeEnum(s));
       whereClause = {
         ...whereClause,
         status: {
@@ -45,6 +46,7 @@ export async function POST(req: Request) {
       companyIndustry,
       jobRole,
       preferences,
+      city,
       source,
       status,
       assignedToId,
@@ -73,18 +75,41 @@ export async function POST(req: Request) {
     }
 
     // Validate enum values (convert to uppercase for Prisma compatibility)
-    const validSources = ['WEBSITE', 'REFERRAL', 'PROPERTY_PORTAL', 'OTHER'];
-    const validStatuses = ['HOT', 'WARM', 'COLD'];
+    const validSources = [
+      'WEBSITE',
+      'REFERRAL',
+      'PROPERTY_PORTAL',
+      'SOCIAL_MEDIA',
+      'WALK_IN',
+      'CALL',
+      'EMAIL',
+      'OTHER'
+    ];
+
+    const validStatuses = [
+      'COLD',
+      'HOT',
+      'WARM',
+      'NEW',
+      'FOLLOW_UP',
+      'LOST',
+      'NURTURED',
+      'CONVERTED'
+    ];
+
     
-    // Convert source to uppercase for Prisma
-    const sourceUpper = source.toUpperCase();
-    const statusUpper = status.toUpperCase();
+    // Normalize to Prisma enum format: UPPERCASE_WITH_UNDERSCORES
+    const normalizeEnum = (s: string) => s.trim().toUpperCase().replace(/[\s-]+/g, '_');
+    const sourceEnum = normalizeEnum(source);
+    let statusEnum = normalizeEnum(status);
+    // Handle legacy/client label mismatch: Prisma uses NURTURED
+    if (statusEnum === 'NURTURING') statusEnum = 'NURTURED';
     
-    if (!validSources.includes(sourceUpper)) {
+    if (!validSources.includes(sourceEnum)) {
       return NextResponse.json({ error: `Invalid source. Must be one of: ${validSources.join(', ')}` }, { status: 400 });
     }
 
-    if (!validStatuses.includes(statusUpper)) {
+    if (!validStatuses.includes(statusEnum)) {
       return NextResponse.json({ error: `Invalid status. Must be one of: ${validStatuses.join(', ')}` }, { status: 400 });
     }
 
@@ -97,8 +122,9 @@ export async function POST(req: Request) {
       companySize: companySize?.trim() || undefined,
       companyIndustry: companyIndustry?.trim() || undefined,
       jobRole: jobRole?.trim() || undefined,
-      source: sourceUpper as any, // Cast to handle enum type
-      status: statusUpper as any, // Cast to handle enum type
+      city: (typeof city === 'string' && city.trim()) ? (city.trim().charAt(0).toUpperCase() + city.trim().slice(1)) : undefined,
+      source: sourceEnum as any, // Cast to handle enum type
+      status: statusEnum as any, // Cast to handle enum type
       assignedToId: assignedToId || undefined,
     };
 
