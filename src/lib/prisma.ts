@@ -1,5 +1,4 @@
-import { PrismaClient } from "../../generated/prisma"; // adjust relative path
-// or if inside /app or /src, it may be: "../../../generated/prisma"
+import { PrismaClient } from "@prisma/client";
 
 const globalForPrisma = global as unknown as { prisma: PrismaClient };
 
