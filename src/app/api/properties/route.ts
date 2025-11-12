@@ -34,15 +34,16 @@ export async function POST(req: Request) {
     // Validate required fields
     if (!name || !type || !price || !status || !location) {
       console.error('Missing required fields:', { name, type, price, status, location });
+      const details = [
+        !name ? "Property name is required" : null,
+        !type ? "Property type is required" : null,
+        !price ? "Price is required" : null,
+        !status ? "Status is required" : null,
+        !location ? "Location is required" : null,
+      ].filter(Boolean) as string[];
       return NextResponse.json({ 
         error: "Missing required fields", 
-        details: {
-          name: !name ? "Property name is required" : null,
-          type: !type ? "Property type is required" : null,
-          price: !price ? "Price is required" : null,
-          status: !status ? "Status is required" : null,
-          location: !location ? "Location is required" : null,
-        }.filter(Boolean)
+        details,
       }, { status: 400 });
     }
 

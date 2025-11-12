@@ -22,11 +22,10 @@ const statusColorMap: Record<string, string> = {
   
   // Property Status Colors
   [PropertyStatus.ACTIVE]: 'bg-green-100 text-green-800 border-green-200',
-  [PropertyStatus.PRE_LAUNCH]: 'bg-blue-100 text-blue-800 border-blue-200',
+  [PropertyStatus.PRELAUNCH]: 'bg-blue-100 text-blue-800 border-blue-200',
   [PropertyStatus.UNDER_CONSTRUCTION]: 'bg-yellow-100 text-yellow-800 border-yellow-200',
-  [PropertyStatus.READY_TO_MOVE]: 'bg-emerald-100 text-emerald-800 border-emerald-200',
   [PropertyStatus.SOLD_OUT]: 'bg-gray-100 text-gray-800 border-gray-200',
-  [PropertyStatus.ON_HOLD]: 'bg-orange-100 text-orange-800 border-orange-200'
+  
 };
 
 const dotColorMap: Record<string, string> = {
@@ -40,11 +39,10 @@ const dotColorMap: Record<string, string> = {
   [LeadStatus.NURTURING]: 'bg-purple-500',
   
   [PropertyStatus.ACTIVE]: 'bg-green-500',
-  [PropertyStatus.PRE_LAUNCH]: 'bg-blue-500',
+  [PropertyStatus.PRELAUNCH]: 'bg-blue-500',
   [PropertyStatus.UNDER_CONSTRUCTION]: 'bg-yellow-500',
-  [PropertyStatus.READY_TO_MOVE]: 'bg-emerald-500',
   [PropertyStatus.SOLD_OUT]: 'bg-gray-500',
-  [PropertyStatus.ON_HOLD]: 'bg-orange-500'
+  
 };
 
 export const StatusField: React.FC<StatusFieldProps> = ({

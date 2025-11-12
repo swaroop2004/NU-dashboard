@@ -149,7 +149,7 @@ export function PropertyTable({
     if (property.status === PropertyStatus.ACTIVE) {
       return 'bg-green-50 border-l-4 border-green-400';
     }
-    if (property.status === PropertyStatus.PRE_LAUNCH) {
+    if (property.status === PropertyStatus.PRELAUNCH) {
       return 'bg-blue-50 border-l-4 border-blue-400';
     }
     return '';
