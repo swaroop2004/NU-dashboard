@@ -71,15 +71,16 @@ export async function POST(request: NextRequest) {
 
     // Prepare request body for Apify API
     const apifyRequestBody = {
-      deleteSave: false,
-      expandIndustrySynonyms: false,
       hasEmail: true,
       hasPhone: true,
-      includeSimilarTitles: true,
+      personLocationCityIncludes: ['Delhi'],
       personLocationCountryIncludes: ['India'],
-      personLocationCityIncludes: ['Pune'],
-      resetSavedProgress: false,
-      totalResults: body.totalResults 
+      seniorityIncludes: ["Manager",
+        "Director",
+        "Founder",
+        "Head",
+        "VP"],
+      totalResults: body.totalResults
     };
 
     // Call Apify API
