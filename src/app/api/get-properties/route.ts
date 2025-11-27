@@ -1,10 +1,27 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { auth } from "@/lib/auth";
+import { headers } from "next/headers";
 
 // ✅ GET /api/properties
 // Returns all properties (optionally filtered by status or type)
 export async function GET(req: Request) {
   try {
+    // Check API Key
+    const apiKey = req.headers.get("x-api-key");
+    const validApiKey = process.env.API_KEY;
+    const isApiRequest = apiKey && validApiKey && apiKey === validApiKey;
+
+    if (!isApiRequest) {
+      const session = await auth.api.getSession({
+        headers: await headers()
+      });
+
+      if (!session) {
+        return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      }
+    }
+
     const { searchParams } = new URL(req.url);
     const status = searchParams.get("status"); // e.g. ACTIVE, SOLD_OUT
     const type = searchParams.get("type");     // e.g. APARTMENT, STUDIO

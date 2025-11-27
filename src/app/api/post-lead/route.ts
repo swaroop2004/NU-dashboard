@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { auth } from "@/lib/auth";
+import { headers } from "next/headers";
 
 // -----------------------
 // CREATE LEAD (POST)
@@ -7,6 +9,20 @@ import { prisma } from "@/lib/prisma";
 export async function POST(req: Request) {
   try {
     const body = await req.json();
+
+    // Check Auth (Session or API Key)
+    const apiKey = req.headers.get("x-api-key");
+    const validApiKey = process.env.API_KEY;
+    const isApiRequest = apiKey && validApiKey && apiKey === validApiKey;
+
+    if (!isApiRequest) {
+      const session = await auth.api.getSession({
+        headers: await headers()
+      });
+      if (!session) {
+        return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      }
+    }
 
     const {
       name,
@@ -32,7 +48,7 @@ export async function POST(req: Request) {
     // Validate assigned user
     let validAssignedUser = null;
     if (assignedToId) {
-      validAssignedUser = await prisma.userProfile.findUnique({
+      validAssignedUser = await prisma.user.findUnique({
         where: { id: assignedToId },
       });
 
@@ -138,7 +154,7 @@ async function handleUpdate(req: Request, isFullReplace: boolean) {
     // Validate assigned user
     let validAssignedUser = null;
     if (assignedToId) {
-      validAssignedUser = await prisma.userProfile.findUnique({
+      validAssignedUser = await prisma.user.findUnique({
         where: { id: assignedToId },
       });
 
@@ -152,41 +168,41 @@ async function handleUpdate(req: Request, isFullReplace: boolean) {
 
     const updateData: any = isFullReplace
       ? {
-          name,
-          email,
-          city,
-          phoneNumber,
-          companyName,
-          companySize,
-          companyIndustry,
-          jobRole,
-          preferences,
-          source,
-          status,
-          visitStatus,
-          assignedToId: validAssignedUser ? validAssignedUser.id : null,
-          propertiesViewed: propertiesViewed
-            ? { set: propertiesViewed.map((id: string) => ({ id })) }
-            : undefined,
-        }
+        name,
+        email,
+        city,
+        phoneNumber,
+        companyName,
+        companySize,
+        companyIndustry,
+        jobRole,
+        preferences,
+        source,
+        status,
+        visitStatus,
+        assignedToId: validAssignedUser ? validAssignedUser.id : null,
+        propertiesViewed: propertiesViewed
+          ? { set: propertiesViewed.map((id: string) => ({ id })) }
+          : undefined,
+      }
       : {
-      ...(name && { name }),
-      ...(email && { email }),
-      ...(city && { city }),
-      ...(phoneNumber && { phoneNumber }),
-      ...(companyName && { companyName }),
-      ...(companySize && { companySize }),
-      ...(companyIndustry && { companyIndustry }),
-      ...(jobRole && { jobRole }),
-      ...(preferences && { preferences }),
-      ...(source && { source }),
-      ...(status && { status }),
-      ...(visitStatus && { visitStatus }),
-      ...(assignedToId && validAssignedUser && { assignedToId: validAssignedUser.id }),
-      ...(propertiesViewed && {
-        propertiesViewed: { set: propertiesViewed.map((id: string) => ({ id })) },
-      }),
-    };
+        ...(name && { name }),
+        ...(email && { email }),
+        ...(city && { city }),
+        ...(phoneNumber && { phoneNumber }),
+        ...(companyName && { companyName }),
+        ...(companySize && { companySize }),
+        ...(companyIndustry && { companyIndustry }),
+        ...(jobRole && { jobRole }),
+        ...(preferences && { preferences }),
+        ...(source && { source }),
+        ...(status && { status }),
+        ...(visitStatus && { visitStatus }),
+        ...(assignedToId && validAssignedUser && { assignedToId: validAssignedUser.id }),
+        ...(propertiesViewed && {
+          propertiesViewed: { set: propertiesViewed.map((id: string) => ({ id })) },
+        }),
+      };
 
     const updatedLead = await prisma.lead.update({
       where: { id: leadId },

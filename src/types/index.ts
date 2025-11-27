@@ -15,6 +15,7 @@ export interface Lead extends BaseEntity {
   lastContact: string;
   conversion: number;
   property: string;
+  properties: string[]; // Added properties array
   assignedTo?: string;
   notes?: string;
   priority?: LeadPriority;

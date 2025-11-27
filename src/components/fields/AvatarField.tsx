@@ -54,7 +54,7 @@ export const AvatarField: React.FC<AvatarFieldProps> = ({
       'bg-indigo-500 text-white',
       'bg-teal-500 text-white'
     ];
-    
+
     const index = name.charCodeAt(0) % colors.length;
     return colors[index];
   };

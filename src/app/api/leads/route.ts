@@ -1,13 +1,23 @@
 import { prisma } from "@/lib/prisma";
 import { NextResponse } from "next/server";
+import { auth } from "@/lib/auth";
+import { headers } from "next/headers";
 
 export async function GET(request: Request) {
   try {
+    const session = await auth.api.getSession({
+      headers: await headers()
+    });
+
+    if (!session) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
     const { searchParams } = new URL(request.url);
     const status = searchParams.get('status');
-    
+
     let whereClause = {};
-    
+
     // Filter by status if provided
     if (status) {
       const normalizeEnum = (s: string) => s.trim().toUpperCase().replace(/[\s-]+/g, '_');
@@ -19,7 +29,7 @@ export async function GET(request: Request) {
         }
       };
     }
-    
+
     const leads = await prisma.lead.findMany({
       where: whereClause,
       include: {
@@ -34,9 +44,17 @@ export async function GET(request: Request) {
   }
 }
 
-export async function POST(req: Request) {
+export async function POST(request: Request) {
   try {
-    const data = await req.json();
+    const session = await auth.api.getSession({
+      headers: await headers()
+    });
+
+    if (!session) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const data = await request.json();
     const {
       name,
       email,
@@ -50,7 +68,8 @@ export async function POST(req: Request) {
       source,
       status,
       assignedToId,
-      propertyIds,
+      propertiesViewed, // Accept propertiesViewed from frontend
+      propertyIds,      // Keep for backward compatibility
     } = data;
 
     // Validate required fields
@@ -97,14 +116,14 @@ export async function POST(req: Request) {
       'CONVERTED'
     ];
 
-    
+
     // Normalize to Prisma enum format: UPPERCASE_WITH_UNDERSCORES
     const normalizeEnum = (s: string) => s.trim().toUpperCase().replace(/[\s-]+/g, '_');
     const sourceEnum = normalizeEnum(source);
     let statusEnum = normalizeEnum(status);
     // Handle legacy/client label mismatch: Prisma uses NURTURED
     if (statusEnum === 'NURTURING') statusEnum = 'NURTURED';
-    
+
     if (!validSources.includes(sourceEnum)) {
       return NextResponse.json({ error: `Invalid source. Must be one of: ${validSources.join(', ')}` }, { status: 400 });
     }
@@ -144,9 +163,10 @@ export async function POST(req: Request) {
     }
 
     // Handle property relationships
-    if (propertyIds && Array.isArray(propertyIds) && propertyIds.length > 0) {
+    const propsToConnect = propertiesViewed || propertyIds;
+    if (propsToConnect && Array.isArray(propsToConnect) && propsToConnect.length > 0) {
       leadData.propertiesViewed = {
-        connect: propertyIds.map((id: string) => ({ id }))
+        connect: propsToConnect.map((id: string) => ({ id }))
       };
     }
 
@@ -164,7 +184,7 @@ export async function POST(req: Request) {
     return NextResponse.json(newLead);
   } catch (error) {
     console.error('Error creating lead:', error);
-    
+
     // Handle specific Prisma errors
     if (error instanceof Error) {
       if (error.message.includes('Unique constraint')) {
@@ -174,7 +194,7 @@ export async function POST(req: Request) {
         return NextResponse.json({ error: "Invalid data format: " + error.message }, { status: 400 });
       }
     }
-    
+
     return NextResponse.json({ error: "Failed to create lead" }, { status: 500 });
   }
 }

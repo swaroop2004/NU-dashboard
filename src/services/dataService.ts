@@ -10,8 +10,9 @@ function transformDatabaseLead(dbLead: any): Lead {
     source: dbLead.source as LeadSource,
     status: dbLead.status as LeadStatus,
     lastContact: dbLead.updatedAt ? new Date(dbLead.updatedAt).toISOString() : 'Never',
-    conversion: Math.floor(Math.random() * 100), // Placeholder - should be calculated
+    conversion: dbLead.status === 'Converted' ? 100 : (dbLead.status === 'Hot' ? 80 : (dbLead.status === 'Warm' ? 50 : 20)), // Deterministic conversion based on status
     property: dbLead.propertiesViewed?.[0]?.name || 'No property assigned',
+    properties: dbLead.propertiesViewed?.map((p: any) => p.name) || [],
     assignedTo: dbLead.assignedTo?.name || 'Unassigned',
     priority: LeadPriority.MEDIUM, // Default priority
     tags: [], // Empty tags for now
@@ -444,6 +445,33 @@ export class DataService {
         success: false,
         data: [],
         error: 'Failed to fetch activities',
+        message: error instanceof Error ? error.message : 'Unknown error'
+      };
+    }
+  }
+
+  async getActivitiesByLeadId(leadId: string): Promise<ApiResponse<Activity[]>> {
+    try {
+      const allActivitiesResponse = await this.getActivities();
+      if (!allActivitiesResponse.success) {
+        return allActivitiesResponse;
+      }
+
+      const leadActivities = allActivitiesResponse.data.filter(
+        activity => activity.relatedEntity.type === 'lead' && String(activity.relatedEntity.id) === String(leadId)
+      );
+
+      return {
+        success: true,
+        data: leadActivities,
+        message: 'Lead activities retrieved successfully'
+      };
+    } catch (error) {
+      console.error('Error fetching lead activities:', error);
+      return {
+        success: false,
+        data: [],
+        error: 'Failed to fetch lead activities',
         message: error instanceof Error ? error.message : 'Unknown error'
       };
     }

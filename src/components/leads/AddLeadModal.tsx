@@ -20,9 +20,24 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { LeadSource, LeadStatus } from '@/types';
+import { LeadSource, LeadStatus, Property } from '@/types';
+import { useData } from "@/context/DataContext";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, User, Mail, Phone, Building, Users, Briefcase, MapPin } from 'lucide-react';
+import { Loader2, User, Mail, Phone, Building, Users, Briefcase, MapPin, Check, ChevronsUpDown } from 'lucide-react';
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "@/components/ui/command";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { cn } from "@/lib/utils";
 
 interface AddLeadModalProps {
   isOpen: boolean;
@@ -50,6 +65,7 @@ interface FormData {
   status: LeadStatus;
   preferences: string;
   assignedToId: string;
+  propertiesViewed: string[];
 }
 
 interface FormErrors {
@@ -62,11 +78,12 @@ interface FormErrors {
   source?: string;
   status?: string;
   assignedToId?: string;
+  propertiesViewed?: string;
 }
 
 const COMPANY_SIZE_OPTIONS = [
   "2 - 10",
-  "11 - 50", 
+  "11 - 50",
   "51 - 200",
   "201 - 500",
   "501 - 1000",
@@ -77,7 +94,7 @@ const COMPANY_SIZE_OPTIONS = [
 
 const INDUSTRY_OPTIONS = [
   "Automotive",
-  "Accounting", 
+  "Accounting",
   "Agriculture",
   "Airlines/Aviation",
   "Alternative Dispute Resolution",
@@ -229,18 +246,22 @@ const INDUSTRY_OPTIONS = [
 
 export function AddLeadModal({ isOpen, onClose, onLeadAdded }: AddLeadModalProps) {
   const { toast } = useToast();
+  const { properties } = useData();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errors, setErrors] = useState<FormErrors>({});
   const [users, setUsers] = useState<User[]>([]);
   const [isLoadingUsers, setIsLoadingUsers] = useState(false);
   const [industrySearch, setIndustrySearch] = useState('');
-  
+
+  // Properties state
+  const [openCombobox, setOpenCombobox] = useState(false);
+
   const capitalizeFirst = (value: string) => {
     const trimmed = value.trim();
     if (!trimmed) return '';
     return trimmed.charAt(0).toUpperCase() + trimmed.slice(1);
   };
-  
+
   const [formData, setFormData] = useState<FormData>({
     name: '',
     email: '',
@@ -254,6 +275,7 @@ export function AddLeadModal({ isOpen, onClose, onLeadAdded }: AddLeadModalProps
     status: LeadStatus.WARM,
     preferences: '',
     assignedToId: '',
+    propertiesViewed: [],
   });
 
   // Fetch users when modal opens
@@ -284,56 +306,66 @@ export function AddLeadModal({ isOpen, onClose, onLeadAdded }: AddLeadModalProps
     }
   };
 
+  const handlePropertyToggle = (propertyId: string) => {
+    setFormData(prev => {
+      const current = prev.propertiesViewed || [];
+      const updated = current.includes(propertyId)
+        ? current.filter(id => id !== propertyId)
+        : [...current, propertyId];
+      return { ...prev, propertiesViewed: updated };
+    });
+  };
+
   const validateForm = (): boolean => {
     const newErrors: FormErrors = {};
-    
+
     if (!formData.name.trim()) {
       newErrors.name = 'Name is required';
     }
-    
+
     if (!formData.email.trim()) {
       newErrors.email = 'Email is required';
     } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
       newErrors.email = 'Please enter a valid email address';
     }
-    
+
     if (!formData.phoneNumber.trim()) {
       newErrors.phoneNumber = 'Phone number is required';
     } else if (!/^\+?[\d\s\-\(\)]{10,}$/.test(formData.phoneNumber)) {
       newErrors.phoneNumber = 'Please enter a valid phone number';
     }
-    
+
     if (!formData.companyName.trim()) {
       newErrors.companyName = 'Company name is required';
     }
-    
+
     if (!formData.companySize) {
       newErrors.companySize = 'Company size is required';
     }
-    
+
     if (!formData.companyIndustry) {
       newErrors.companyIndustry = 'Industry is required';
     }
-    
+
     if (!formData.source) {
       newErrors.source = 'Source is required';
     }
-    
+
     if (!formData.status) {
       newErrors.status = 'Status is required';
     }
-    
+
     if (!formData.assignedToId) {
       newErrors.assignedToId = 'Assigned sales representative is required';
     }
-    
+
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!validateForm()) {
       toast({
         title: "Validation Error",
@@ -342,9 +374,9 @@ export function AddLeadModal({ isOpen, onClose, onLeadAdded }: AddLeadModalProps
       });
       return;
     }
-    
+
     setIsSubmitting(true);
-    
+
     try {
       // Prepare the request data
       const requestData = {
@@ -359,6 +391,7 @@ export function AddLeadModal({ isOpen, onClose, onLeadAdded }: AddLeadModalProps
         source: formData.source,
         status: formData.status,
         assignedToId: formData.assignedToId || undefined,
+        propertiesViewed: formData.propertiesViewed,
       };
 
       // Only add preferences if provided and valid JSON
@@ -379,23 +412,23 @@ export function AddLeadModal({ isOpen, onClose, onLeadAdded }: AddLeadModalProps
         },
         body: JSON.stringify(requestData),
       });
-      
+
       console.log('Response status:', response.status);
-      
+
       if (!response.ok) {
         const errorData = await response.json();
         console.error('Server error response:', errorData);
         throw new Error(errorData.error || `Failed to create lead (status: ${response.status})`);
       }
-      
+
       const newLead = await response.json();
-      
+
       toast({
         title: "Success!",
         description: `Lead "${newLead.name}" has been created successfully.`,
         variant: "default",
       });
-      
+
       // Reset form
       setFormData({
         name: '',
@@ -410,13 +443,14 @@ export function AddLeadModal({ isOpen, onClose, onLeadAdded }: AddLeadModalProps
         status: LeadStatus.WARM,
         preferences: '',
         assignedToId: '',
+        propertiesViewed: [],
       });
       setErrors({});
-      
+
       // Close modal and refresh data
       onClose();
       onLeadAdded();
-      
+
     } catch (error) {
       console.error('Error creating lead:', error);
       toast({
@@ -451,12 +485,12 @@ export function AddLeadModal({ isOpen, onClose, onLeadAdded }: AddLeadModalProps
               Fill in the details below to create a new lead. Required fields are marked with *
             </DialogDescription>
           </DialogHeader>
-          
+
           <div className="grid gap-4 py-4">
             {/* Personal Information */}
             <div className="space-y-4">
               <h3 className="text-lg font-semibold text-gray-900">Personal Information</h3>
-              
+
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="name" className={errors.name ? "text-red-500" : ""}>
@@ -474,7 +508,7 @@ export function AddLeadModal({ isOpen, onClose, onLeadAdded }: AddLeadModalProps
                     />
                   </div>
                 </div>
-                
+
                 <div className="space-y-2">
                   <Label htmlFor="email" className={errors.email ? "text-red-500" : ""}>
                     Email * {errors.email && <span className="text-red-500 text-sm">({errors.email})</span>}
@@ -492,7 +526,7 @@ export function AddLeadModal({ isOpen, onClose, onLeadAdded }: AddLeadModalProps
                     />
                   </div>
                 </div>
-                
+
                 <div className="space-y-2">
                   <Label htmlFor="phoneNumber" className={errors.phoneNumber ? "text-red-500" : ""}>
                     Phone Number * {errors.phoneNumber && <span className="text-red-500 text-sm">({errors.phoneNumber})</span>}
@@ -509,7 +543,7 @@ export function AddLeadModal({ isOpen, onClose, onLeadAdded }: AddLeadModalProps
                     />
                   </div>
                 </div>
-                
+
                 <div className="space-y-2">
                   <Label htmlFor="jobRole">Job Role</Label>
                   <div className="relative">
@@ -526,11 +560,11 @@ export function AddLeadModal({ isOpen, onClose, onLeadAdded }: AddLeadModalProps
                 </div>
               </div>
             </div>
-            
+
             {/* Company Information */}
             <div className="space-y-4">
               <h3 className="text-lg font-semibold text-gray-900">Company Information</h3>
-              
+
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="companyName" className={errors.companyName ? "text-red-500" : ""}>
@@ -548,7 +582,7 @@ export function AddLeadModal({ isOpen, onClose, onLeadAdded }: AddLeadModalProps
                     />
                   </div>
                 </div>
-                
+
                 <div className="space-y-2">
                   <Label htmlFor="city">City</Label>
                   <div className="relative">
@@ -585,7 +619,7 @@ export function AddLeadModal({ isOpen, onClose, onLeadAdded }: AddLeadModalProps
                     </SelectContent>
                   </Select>
                 </div>
-                
+
                 <div className="space-y-2 md:col-span-2">
                   <Label htmlFor="companyIndustry" className={errors.companyIndustry ? "text-red-500" : ""}>
                     Industry * {errors.companyIndustry && <span className="text-red-500 text-sm">({errors.companyIndustry})</span>}
@@ -628,11 +662,11 @@ export function AddLeadModal({ isOpen, onClose, onLeadAdded }: AddLeadModalProps
                 </div>
               </div>
             </div>
-            
+
             {/* Lead Details */}
             <div className="space-y-4">
               <h3 className="text-lg font-semibold text-gray-900">Lead Details</h3>
-              
+
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="source" className={errors.source ? "text-red-500" : ""}>
@@ -655,7 +689,7 @@ export function AddLeadModal({ isOpen, onClose, onLeadAdded }: AddLeadModalProps
                     </SelectContent>
                   </Select>
                 </div>
-                
+
                 <div className="space-y-2">
                   <Label htmlFor="status" className={errors.status ? "text-red-500" : ""}>
                     Status * {errors.status && <span className="text-red-500 text-sm">({errors.status})</span>}
@@ -677,7 +711,7 @@ export function AddLeadModal({ isOpen, onClose, onLeadAdded }: AddLeadModalProps
                     </SelectContent>
                   </Select>
                 </div>
-                
+
                 <div className="space-y-2">
                   <Label htmlFor="assignedToId">Assigned Sales Representative</Label>
                   <Select
@@ -698,7 +732,7 @@ export function AddLeadModal({ isOpen, onClose, onLeadAdded }: AddLeadModalProps
                     </SelectContent>
                   </Select>
                 </div>
-                
+
                 <div className="space-y-2 md:col-span-2">
                   <Label htmlFor="preferences">Preferences (JSON format)</Label>
                   <Textarea
@@ -713,10 +747,60 @@ export function AddLeadModal({ isOpen, onClose, onLeadAdded }: AddLeadModalProps
                     Optional: Enter preferences in JSON format
                   </p>
                 </div>
+
+                <div className="space-y-2 md:col-span-2">
+                  <Label>Properties Viewed</Label>
+                  <Popover open={openCombobox} onOpenChange={setOpenCombobox}>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        role="combobox"
+                        aria-expanded={openCombobox}
+                        className="w-full justify-between"
+                        disabled={isSubmitting}
+                      >
+                        {formData.propertiesViewed?.length > 0
+                          ? `${formData.propertiesViewed.length} propert${formData.propertiesViewed.length === 1 ? 'y' : 'ies'} selected`
+                          : "Select properties..."}
+                        <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-[400px] p-0" align="start">
+                      <Command>
+                        <CommandInput placeholder="Search properties..." />
+                        <CommandList>
+                          <CommandEmpty>No property found.</CommandEmpty>
+                          <CommandGroup>
+                            {properties.map((property) => (
+                              <CommandItem
+                                key={property.id}
+                                value={property.name}
+                                onSelect={() => handlePropertyToggle(String(property.id))}
+                              >
+                                <Check
+                                  className={cn(
+                                    "mr-2 h-4 w-4",
+                                    formData.propertiesViewed?.includes(String(property.id))
+                                      ? "opacity-100"
+                                      : "opacity-0"
+                                  )}
+                                />
+                                <div className="flex flex-col">
+                                  <span>{property.name}</span>
+                                  <span className="text-xs text-muted-foreground">{property.location}</span>
+                                </div>
+                              </CommandItem>
+                            ))}
+                          </CommandGroup>
+                        </CommandList>
+                      </Command>
+                    </PopoverContent>
+                  </Popover>
+                </div>
               </div>
             </div>
           </div>
-          
+
           <DialogFooter className="gap-2">
             <Button
               type="button"
