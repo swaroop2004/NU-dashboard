@@ -27,7 +27,7 @@ export default function AuthPage() {
         }, {
             onSuccess: () => {
                 toast({ title: "Success", description: "Logged in successfully" });
-                router.push("/dashboard");
+                window.location.href = "/dashboard";
             },
             onError: (ctx) => {
                 toast({ title: "Error", description: ctx.error.message, variant: "destructive" });
@@ -45,7 +45,7 @@ export default function AuthPage() {
         }, {
             onSuccess: () => {
                 toast({ title: "Success", description: "Account created successfully" });
-                router.push("/dashboard");
+                window.location.href = "/dashboard";
             },
             onError: (ctx) => {
                 toast({ title: "Error", description: ctx.error.message, variant: "destructive" });
