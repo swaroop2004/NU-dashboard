@@ -110,6 +110,11 @@ model Property {
   amenities       String[]         // e.g. ["Pool", "Gym", "Clubhouse"]
   tokens          Int?      // for booking or NFT/property tokens
   
+  // New fields
+  reraNumber      String?
+  possessionDate  DateTime?
+  builder         String?
+  
   // Relationships
   leads            Lead[]          @relation("LeadProperties")
   

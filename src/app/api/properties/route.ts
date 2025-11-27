@@ -18,7 +18,7 @@ export async function GET() {
 export async function POST(req: Request) {
   try {
     const data = await req.json();
-    
+
     // Extract only the fields that exist in the Prisma schema
     const {
       name,
@@ -29,6 +29,9 @@ export async function POST(req: Request) {
       description,
       amenities,
       tokens,
+      reraNumber,
+      possessionDate,
+      builder,
     } = data;
 
     // Validate required fields
@@ -41,8 +44,8 @@ export async function POST(req: Request) {
         !status ? "Status is required" : null,
         !location ? "Location is required" : null,
       ].filter(Boolean) as string[];
-      return NextResponse.json({ 
-        error: "Missing required fields", 
+      return NextResponse.json({
+        error: "Missing required fields",
         details,
       }, { status: 400 });
     }
@@ -50,18 +53,18 @@ export async function POST(req: Request) {
     // Validate enum values
     const validPropertyTypes = ['APARTMENT', 'PENTHOUSE', 'STUDIO'];
     const validPropertyStatuses = ['ACTIVE', 'PRELAUNCH', 'UNDER_CONSTRUCTION', 'SOLD_OUT'];
-    
+
     if (!validPropertyTypes.includes(type)) {
-      return NextResponse.json({ 
-        error: "Invalid property type", 
-        details: `Valid types are: ${validPropertyTypes.join(', ')}` 
+      return NextResponse.json({
+        error: "Invalid property type",
+        details: `Valid types are: ${validPropertyTypes.join(', ')}`
       }, { status: 400 });
     }
-    
+
     if (!validPropertyStatuses.includes(status)) {
-      return NextResponse.json({ 
-        error: "Invalid property status", 
-        details: `Valid statuses are: ${validPropertyStatuses.join(', ')}` 
+      return NextResponse.json({
+        error: "Invalid property status",
+        details: `Valid statuses are: ${validPropertyStatuses.join(', ')}`
       }, { status: 400 });
     }
 
@@ -96,6 +99,9 @@ export async function POST(req: Request) {
       description: description?.trim() || undefined,
       amenities: amenitiesArray,
       tokens: tokensValue,
+      reraNumber,
+      possessionDate,
+      builder,
     });
 
     // Create property with only valid schema fields
@@ -109,6 +115,9 @@ export async function POST(req: Request) {
         description: description?.trim() || undefined,
         amenities: amenitiesArray,
         tokens: tokensValue,
+        reraNumber: reraNumber || undefined,
+        possessionDate: possessionDate ? new Date(possessionDate) : undefined,
+        builder: builder || undefined,
       },
       include: { leads: true },
     });
@@ -117,23 +126,23 @@ export async function POST(req: Request) {
     return NextResponse.json(newProperty);
   } catch (error) {
     console.error('Error creating property:', error);
-    
+
     // Provide more specific error messages based on error type
     if (error instanceof Error) {
       if (error.message.includes('Invalid enum value')) {
-        return NextResponse.json({ 
-          error: "Invalid enum value provided", 
-          details: error.message 
+        return NextResponse.json({
+          error: "Invalid enum value provided",
+          details: error.message
         }, { status: 400 });
       }
       if (error.message.includes('Unique constraint')) {
-        return NextResponse.json({ 
-          error: "Property with this name already exists", 
-          details: error.message 
+        return NextResponse.json({
+          error: "Property with this name already exists",
+          details: error.message
         }, { status: 409 });
       }
     }
-    
+
     return NextResponse.json({ error: "Failed to create property" }, { status: 500 });
   }
 }

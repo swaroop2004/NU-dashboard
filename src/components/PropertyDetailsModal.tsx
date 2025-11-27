@@ -198,10 +198,9 @@ export function PropertyDetailsModal({ property, isOpen, onClose, onSave }: Prop
                               value={editedProperty.type || ''}
                               onChange={(e) => handleChange('type', e.target.value)}
                             >
-                              <option value="Apartment">Apartment</option>
-                              <option value="Villa">Villa</option>
-                              <option value="Plot">Plot</option>
-                              <option value="Commercial">Commercial</option>
+                              <option value="APARTMENT">Apartment</option>
+                              <option value="PENTHOUSE">Penthouse</option>
+                              <option value="STUDIO">Studio</option>
                             </select>
                           </div>
                         ) : (
@@ -221,12 +220,10 @@ export function PropertyDetailsModal({ property, isOpen, onClose, onSave }: Prop
                           value={editedProperty.status || ''}
                           onChange={(e) => handleChange('status', e.target.value)}
                         >
-                          <option value="Active">Active</option>
-                          <option value="Pre-launch">Pre-launch</option>
-                          <option value="Under Construction">Under Construction</option>
-                          <option value="Ready to Move">Ready to Move</option>
-                          <option value="Sold Out">Sold Out</option>
-                          <option value="On Hold">On Hold</option>
+                          <option value="ACTIVE">Active</option>
+                          <option value="PRELAUNCH">Pre-launch</option>
+                          <option value="UNDER_CONSTRUCTION">Under Construction</option>
+                          <option value="SOLD_OUT">Sold Out</option>
                         </select>
                       </div>
                     ) : (

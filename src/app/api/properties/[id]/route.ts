@@ -99,8 +99,7 @@ export async function PATCH(
                 ...(siteVisitsInt !== undefined && !isNaN(siteVisitsInt) && { visits: siteVisitsInt }), // Map to 'visits' in schema
                 ...(possessionDate && { possessionDate: new Date(possessionDate) }),
                 ...(reraNumber !== undefined && { reraNumber }),
-                // Note: builder is not in the schema based on previous file reads, but was in the UI. 
-                // If it's not in schema, we can't update it. Checking schema...
+                ...(builder !== undefined && { builder }),
             },
         });
 

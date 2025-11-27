@@ -35,7 +35,7 @@ function transformDatabaseProperty(dbProperty: any): Property {
     tokens: dbProperty.tokens || 0,
     description: dbProperty.description || '',
     amenities: dbProperty.amenities || [],
-    builder: 'Unknown Builder', // Placeholder - should be added to schema
+    builder: dbProperty.builder || 'Unknown Builder',
     possessionDate: dbProperty.possessionDate ? new Date(dbProperty.possessionDate).toISOString() : undefined,
     reraNumber: dbProperty.reraNumber || undefined,
     createdAt: new Date(dbProperty.createdAt),

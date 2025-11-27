@@ -1,10 +1,10 @@
 import React from 'react';
 import { DataTable, ColumnConfig } from './DataTable';
 import { Property, PropertyStatus, PropertyType } from '@/types';
-import { 
-  TextField, 
-  StatusField, 
-  ProgressField 
+import {
+  TextField,
+  StatusField,
+  ProgressField
 } from '@/components/fields';
 import { Button } from '@/components/ui/button';
 import { MoreHorizontal, Eye, Edit } from 'lucide-react';
@@ -23,12 +23,12 @@ export interface PropertyTableProps {
   className?: string;
 }
 
-export function PropertyTable({ 
-  properties, 
-  onPropertyClick, 
+export function PropertyTable({
+  properties,
+  onPropertyClick,
   onPropertyAction,
   loading,
-  className 
+  className
 }: PropertyTableProps) {
   const columns: ColumnConfig<Record<string, unknown>>[] = [
     {
@@ -42,6 +42,21 @@ export function PropertyTable({
             <TextField value={property.name} variant="primary" />
             <TextField value={property.location} variant="secondary" className="text-xs" />
           </div>
+        );
+      },
+    },
+    {
+      key: 'builder',
+      header: 'Builder',
+      width: '150px',
+      render: (value, record) => {
+        const property = record as unknown as Property;
+        return (
+          <TextField
+            value={property.builder || '-'}
+            variant="secondary"
+            className="font-medium"
+          />
         );
       },
     },
@@ -102,9 +117,9 @@ export function PropertyTable({
       width: '80px',
       align: 'center',
       render: (value) => (
-        <ProgressField 
-          value={Number(value)} 
-          variant="badge" 
+        <ProgressField
+          value={Number(value)}
+          variant="badge"
           color={Number(value) >= 5 ? 'green' : Number(value) >= 3 ? 'blue' : 'red'}
         />
       ),

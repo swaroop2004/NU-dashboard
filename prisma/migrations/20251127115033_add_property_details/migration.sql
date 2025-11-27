@@ -1,40 +1,17 @@
-/*
-  Warnings:
-
-  - You are about to drop the `Post` table. If the table is not empty, all the data it contains will be lost.
-  - You are about to drop the `Profile` table. If the table is not empty, all the data it contains will be lost.
-  - You are about to drop the `User` table. If the table is not empty, all the data it contains will be lost.
-
-*/
 -- CreateEnum
 CREATE TYPE "VisitStatus" AS ENUM ('BOOKED', 'COMPLETED', 'CANCELLED', 'PENDING');
 
 -- CreateEnum
-CREATE TYPE "LeadStatus" AS ENUM ('HOT', 'WARM', 'COLD');
+CREATE TYPE "Source" AS ENUM ('WEBSITE', 'REFERRAL', 'PROPERTY_PORTAL', 'SOCIAL_MEDIA', 'WALK_IN', 'CALL', 'EMAIL', 'OTHER');
 
 -- CreateEnum
-CREATE TYPE "Source" AS ENUM ('WEBSITE', 'REFERRAL', 'PROPERTY_PORTAL', 'OTHER');
+CREATE TYPE "LeadStatus" AS ENUM ('COLD', 'HOT', 'WARM', 'NEW', 'FOLLOW_UP', 'LOST', 'NURTURED', 'CONVERTED');
 
 -- CreateEnum
 CREATE TYPE "PropertyType" AS ENUM ('APARTMENT', 'PENTHOUSE', 'STUDIO');
 
 -- CreateEnum
 CREATE TYPE "PropertyStatus" AS ENUM ('ACTIVE', 'PRELAUNCH', 'UNDER_CONSTRUCTION', 'SOLD_OUT');
-
--- DropForeignKey
-ALTER TABLE "public"."Post" DROP CONSTRAINT "Post_authorId_fkey";
-
--- DropForeignKey
-ALTER TABLE "public"."Profile" DROP CONSTRAINT "Profile_userId_fkey";
-
--- DropTable
-DROP TABLE "public"."Post";
-
--- DropTable
-DROP TABLE "public"."Profile";
-
--- DropTable
-DROP TABLE "public"."User";
 
 -- CreateTable
 CREATE TABLE "UserProfile" (
@@ -56,6 +33,7 @@ CREATE TABLE "Lead" (
     "email" TEXT,
     "phoneNumber" TEXT,
     "companyName" TEXT,
+    "city" TEXT,
     "companySize" TEXT,
     "companyIndustry" TEXT,
     "jobRole" TEXT,
@@ -83,6 +61,9 @@ CREATE TABLE "Property" (
     "demos" INTEGER NOT NULL DEFAULT 0,
     "amenities" TEXT[],
     "tokens" INTEGER,
+    "reraNumber" TEXT,
+    "possessionDate" TIMESTAMP(3),
+    "builder" TEXT,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
 
