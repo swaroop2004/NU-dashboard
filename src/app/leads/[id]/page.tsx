@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { dataService } from "@/services/dataService";
+import { useData } from "@/context/DataContext";
 import { Lead } from '@/types';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -16,29 +17,41 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
   // Unwrap params with React.use
   const unwrappedParams = React.use(params as unknown as React.Usable<{ id: string }>);
   const leadId = unwrappedParams.id;
-  
+
   const router = useRouter();
+  const { leads, loading: globalLoading } = useData();
   const [lead, setLead] = useState<Lead | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const fetchLead = async () => {
-      try {
-        setLoading(true);
-        // Use getLeadById instead of getLead
-        const response = await dataService.getLeadById(leadId);
-        if (response.success) {
-          setLead(response.data);
-        }
-      } catch (error) {
-        console.error('Error fetching lead:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
+    if (globalLoading) {
+      return;
+    }
 
-    fetchLead();
-  }, [leadId]);
+    const foundLead = leads.find(l => l.id === leadId);
+
+    if (foundLead) {
+      setLead(foundLead);
+      setLoading(false);
+    } else {
+      // Fallback to API if not found in context (e.g. direct link to new lead)
+      const fetchLead = async () => {
+        try {
+          setLoading(true);
+          const response = await dataService.getLeadById(leadId);
+          if (response.success) {
+            setLead(response.data);
+          }
+        } catch (error) {
+          console.error('Error fetching lead:', error);
+        } finally {
+          setLoading(false);
+        }
+      };
+
+      fetchLead();
+    }
+  }, [leadId, leads, globalLoading]);
 
   if (loading) {
     return <div className="flex items-center justify-center h-screen">Loading...</div>;
@@ -51,15 +64,15 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
   return (
     <div className="container mx-auto p-4">
       <div className="mb-6">
-        <Button 
-          variant="ghost" 
-          className="flex items-center gap-2 mb-4" 
+        <Button
+          variant="ghost"
+          className="flex items-center gap-2 mb-4"
           onClick={() => router.push('/leads')}
         >
           <ArrowLeft size={16} />
           Back to All Leads
         </Button>
-        
+
         <h1 className="text-3xl font-bold">{lead.name}</h1>
       </div>
 

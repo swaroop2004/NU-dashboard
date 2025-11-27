@@ -17,6 +17,10 @@ export const metadata: Metadata = {
   description: "Sales dashboard for Nu Real Estate",
 };
 
+import { DataProvider } from "@/context/DataContext";
+
+// ... imports
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -27,7 +31,9 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
-        {children}
+        <DataProvider>
+          {children}
+        </DataProvider>
       </body>
     </html>
   );

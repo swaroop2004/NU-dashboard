@@ -73,13 +73,14 @@ export async function POST(request: NextRequest) {
     const apifyRequestBody = {
       hasEmail: true,
       hasPhone: true,
-      personLocationCityIncludes: ['Delhi'],
+      personLocationCityIncludes: ['Mumbai'],
       personLocationCountryIncludes: ['India'],
       seniorityIncludes: ["Manager",
         "Director",
         "Founder",
         "Head",
         "VP"],
+      resetSavedProgress: false,
       totalResults: body.totalResults
     };
 

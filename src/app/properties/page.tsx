@@ -1,24 +1,25 @@
 "use client";
 
 import { useState, useEffect } from 'react';
+import { useData } from "@/context/DataContext";
 import { DashboardLayout } from "@/components/layout/dashboard-layout";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { PropertyTable } from "@/components/table";
 import { Property, PropertyStatus } from '@/types';
-import { dataService } from '@/services/dataService';
 import { PropertyDetailsModal } from '@/components/PropertyDetailsModal';
 import { AddPropertyModal } from '@/components/properties/AddPropertyModal';
-import { 
-  ChevronLeft, 
-  ChevronRight, 
+import { dataService } from '@/services/dataService';
+import {
+  ChevronLeft,
+  ChevronRight,
   Filter,
   Plus
 } from "lucide-react";
 
 export default function PropertiesPage() {
-  const [properties, setProperties] = useState<Property[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { properties: allProperties, loading, refreshData } = useData();
+  const [filteredProperties, setFilteredProperties] = useState<Property[]>([]);
   const [statusFilter] = useState<PropertyStatus | 'all'>('all');
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedProperty, setSelectedProperty] = useState<Property | null>(null);
@@ -26,20 +27,19 @@ export default function PropertiesPage() {
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
 
   useEffect(() => {
-    loadProperties();
-  }, []);
+    if (!loading) {
+      const result = allProperties.filter(property => {
+        const matchesStatus = statusFilter === 'all' || property.status === statusFilter;
+        const matchesSearch = searchTerm === '' ||
+          property.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          property.location.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          property.type.toLowerCase().includes(searchTerm.toLowerCase());
 
-  const loadProperties = async () => {
-    try {
-      setLoading(true);
-      const response = await dataService.getProperties();
-      setProperties(response.data || []);
-    } catch (error) {
-      console.error('Error loading properties:', error);
-    } finally {
-      setLoading(false);
+        return matchesStatus && matchesSearch;
+      });
+      setFilteredProperties(result);
     }
-  };
+  }, [allProperties, statusFilter, searchTerm, loading]);
 
   const handleViewProperty = (property: Property) => {
     setSelectedProperty(property);
@@ -47,30 +47,40 @@ export default function PropertiesPage() {
   };
 
   const handleEditProperty = (property: Property) => {
-    console.log('Edit property:', property);
+    setSelectedProperty(property);
+    setIsModalOpen(true);
+    // The modal will handle the edit mode internally or we can pass an initial edit state if needed
+    // For now, opening the modal is enough, user can click "Edit" inside
   };
 
   const handleAddProperty = () => {
     setIsAddModalOpen(true);
   };
 
-  const handlePropertyAdded = () => {
-    loadProperties(); // Refresh the properties list
+  const handlePropertyAdded = async () => {
+    await refreshData();
   };
 
   const handleFilter = () => {
     console.log('Open filter dialog');
   };
 
-  const filteredProperties = properties.filter(property => {
-    const matchesStatus = statusFilter === 'all' || property.status === statusFilter;
-    const matchesSearch = searchTerm === '' || 
-      property.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      property.location.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      property.type.toLowerCase().includes(searchTerm.toLowerCase());
-    
-    return matchesStatus && matchesSearch;
-  });
+  const handleSaveProperty = async (id: string, updatedData: Partial<Property>) => {
+    try {
+      const response = await dataService.updateProperty(id, updatedData);
+      if (response.success) {
+        await refreshData();
+        // Update the selected property with the new data so the modal reflects changes immediately
+        setSelectedProperty(prev => prev ? { ...prev, ...updatedData } : null);
+      } else {
+        console.error('Failed to update property:', response.error);
+        alert(`Failed to update property: ${response.message}`);
+      }
+    } catch (error) {
+      console.error('Error saving property:', error);
+      alert('An error occurred while saving the property.');
+    }
+  };
 
   return (
     <DashboardLayout>
@@ -115,7 +125,7 @@ export default function PropertiesPage() {
                 }
               }}
             />
-            
+
             {!loading && filteredProperties.length > 0 && (
               <div className="flex items-center justify-end p-4 space-x-2 border-t">
                 <Button variant="outline" size="sm">
@@ -131,15 +141,12 @@ export default function PropertiesPage() {
           </CardContent>
         </Card>
       </div>
-      
+
       <PropertyDetailsModal
         property={selectedProperty}
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
-        onEdit={(property) => {
-          console.log('Edit property:', property);
-          setIsModalOpen(false);
-        }}
+        onSave={handleSaveProperty}
       />
 
       <AddPropertyModal

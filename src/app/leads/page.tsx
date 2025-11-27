@@ -2,16 +2,16 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import { useData } from "@/context/DataContext";
 import { DashboardLayout } from "@/components/layout/dashboard-layout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { LeadTable } from "@/components/table/LeadTable";
 import { AddLeadModal } from "@/components/leads/AddLeadModal";
 import { AILeadsModal } from "@/components/leads/AILeadsModal";
-import { dataService } from "@/services/dataService";
 import { Lead, LeadStatus, LeadSource } from '@/types';
-import { 
-  Filter, 
+import {
+  Filter,
   Download,
   Plus,
   Sparkles
@@ -27,8 +27,8 @@ import { Input } from "@/components/ui/input";
 
 export default function LeadsPage() {
   const router = useRouter();
-  const [leads, setLeads] = useState<Lead[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { leads: allLeads, loading, refreshData } = useData();
+  const [filteredLeads, setFilteredLeads] = useState<Lead[]>([]);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isAILeadsModalOpen, setIsAILeadsModalOpen] = useState(false);
   const [filters, setFilters] = useState({
@@ -38,27 +38,29 @@ export default function LeadsPage() {
   });
 
   useEffect(() => {
-    const fetchLeads = async () => {
-      try {
-        setLoading(true);
-        const response = await dataService.getLeads({
-          status: filters.status !== 'all' ? [filters.status as LeadStatus] : undefined,
-          source: filters.source !== 'all' ? [filters.source as LeadSource] : undefined,
-          search: filters.search || undefined
-        });
-        
-        if (response.success) {
-          setLeads(response.data);
-        }
-      } catch (error) {
-        console.error('Error fetching leads:', error);
-      } finally {
-        setLoading(false);
+    if (!loading) {
+      let result = allLeads;
+
+      if (filters.status !== 'all') {
+        result = result.filter(lead => lead.status === filters.status);
       }
-    };
-    
-    fetchLeads();
-  }, [filters]);
+
+      if (filters.source !== 'all') {
+        result = result.filter(lead => lead.source === filters.source);
+      }
+
+      if (filters.search) {
+        const searchLower = filters.search.toLowerCase();
+        result = result.filter(lead =>
+          lead.name.toLowerCase().includes(searchLower) ||
+          lead.email?.toLowerCase().includes(searchLower) ||
+          lead.property.toLowerCase().includes(searchLower)
+        );
+      }
+
+      setFilteredLeads(result);
+    }
+  }, [allLeads, filters, loading]);
 
   const handleLeadClick = (lead: Lead) => {
     router.push(`/leads/${lead.id}`);
@@ -76,28 +78,9 @@ export default function LeadsPage() {
     setIsAddModalOpen(true);
   };
 
-  const handleLeadAdded = () => {
-    // Refresh the leads data after successful creation
-    const fetchLeads = async () => {
-      try {
-        setLoading(true);
-        const response = await dataService.getLeads({
-          status: filters.status !== 'all' ? [filters.status as LeadStatus] : undefined,
-          source: filters.source !== 'all' ? [filters.source as LeadSource] : undefined,
-          search: filters.search || undefined
-        });
-        
-        if (response.success) {
-          setLeads(response.data);
-        }
-      } catch (error) {
-        console.error('Error fetching leads:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
-    
-    fetchLeads();
+  const handleLeadAdded = async () => {
+    // Refresh the global data after successful creation
+    await refreshData();
   };
 
   const handleExport = () => {
@@ -156,7 +139,7 @@ export default function LeadsPage() {
                     ))}
                   </SelectContent>
                 </Select>
-                
+
                 <Select
                   value={filters.source}
                   onValueChange={(value) => setFilters(prev => ({ ...prev, source: value }))}
@@ -183,7 +166,7 @@ export default function LeadsPage() {
           </CardHeader>
           <CardContent className="p-0">
             <LeadTable
-              leads={leads}
+              leads={filteredLeads}
               onLeadClick={handleLeadClick}
               onLeadAction={handleLeadAction}
               loading={loading}
@@ -192,13 +175,13 @@ export default function LeadsPage() {
           </CardContent>
         </Card>
       </div>
-      
+
       <AddLeadModal
         isOpen={isAddModalOpen}
         onClose={() => setIsAddModalOpen(false)}
         onLeadAdded={handleLeadAdded}
       />
-      
+
       <AILeadsModal
         isOpen={isAILeadsModalOpen}
         onClose={() => setIsAILeadsModalOpen(false)}

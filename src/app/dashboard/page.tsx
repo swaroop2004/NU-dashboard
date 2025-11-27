@@ -1,49 +1,33 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useData } from "@/context/DataContext";
 import { DashboardLayout } from "@/components/layout/dashboard-layout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { ArrowUp, Users } from "lucide-react";
 import { FadeIn, SlideIn } from "@/components/ui/animations";
-import { Lead, Property, DashboardStats, Activity, LeadStatus, PropertyStatus, ActivityType } from '@/types';
-import { dataService } from '@/services/dataService';
+import { Lead, Property, Activity, LeadStatus, PropertyStatus, ActivityType } from '@/types';
 import { LeadTable } from '@/components/table';
 import { PropertyDetailsModal } from '@/components/PropertyDetailsModal';
 
 export default function DashboardPage() {
-  const [stats, setStats] = useState<DashboardStats | null>(null);
+  const { stats, leads, properties, activities, loading } = useData();
   const [highIntentLeads, setHighIntentLeads] = useState<Lead[]>([]);
   const [topProperties, setTopProperties] = useState<Property[]>([]);
   const [recentActivities, setRecentActivities] = useState<Activity[]>([]);
-  const [loading, setLoading] = useState(true);
   const [selectedProperty, setSelectedProperty] = useState<Property | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
 
   useEffect(() => {
-    loadDashboardData();
-  }, []);
-
-  const loadDashboardData = async () => {
-    try {
-      setLoading(true);
-      const [statsData, leadsData, propertiesData, activitiesData] = await Promise.all([
-        dataService.getDashboardStats(),
-        dataService.getLeads({ status: [LeadStatus.HOT] }), // Only HOT leads for High Intent section
-        dataService.getProperties({ status: [PropertyStatus.ACTIVE] }),
-        dataService.getActivities(8)
-      ]);
-      
-      setStats(statsData.data);
-      setHighIntentLeads(leadsData.data || []);
-      setTopProperties(propertiesData.data || []);
-      setRecentActivities(activitiesData.data || []);
-    } catch (error) {
-      console.error('Error loading dashboard data:', error);
-    } finally {
-      setLoading(false);
+    if (!loading) {
+      // Filter HOT leads for High Intent section
+      setHighIntentLeads(leads.filter(l => l.status === LeadStatus.HOT));
+      // Filter ACTIVE properties
+      setTopProperties(properties.filter(p => p.status === PropertyStatus.ACTIVE));
+      setRecentActivities(activities);
     }
-  };
+  }, [leads, properties, activities, loading]);
 
   const handleViewLead = (lead: Lead) => {
     console.log('View lead:', lead);
@@ -57,6 +41,7 @@ export default function DashboardPage() {
     setSelectedProperty(property);
     setIsModalOpen(true);
   };
+
   return (
     <DashboardLayout>
       <div className="p-4 md:p-6 bg-gray-100">
@@ -158,44 +143,43 @@ export default function DashboardPage() {
             </SlideIn>
 
             {/* High Intent Leads - Hot Leads Only */}
-            {/* High Intent Leads - Hot Leads Only */}
-<SlideIn direction="right" delay={0.3}>
-  <div>
-    <div className="flex justify-between items-center mb-4">
-      <div className="flex items-center gap-2">
-        <h2 className="text-xl font-bold">Hot Leads</h2>
-        <span className="bg-red-100 text-red-800 text-xs font-medium px-2.5 py-0.5 rounded-full">
-          High Priority
-        </span>
-      </div>
-      <a href="/leads" className="text-sm text-gray-500 hover:text-blue-600 transition-colors">view all</a>
-    </div>
-    <div className="bg-white p-4 rounded-lg shadow-sm border border-red-100">
-      {highIntentLeads.length === 0 && !loading ? (
-        <div className="text-center py-8 text-gray-500">
-          <div className="w-12 h-12 mx-auto mb-2 bg-red-100 rounded-full flex items-center justify-center">
-            <svg className="w-6 h-6 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
-            </svg>
-          </div>
-          <p className="text-sm">No hot leads at the moment</p>
-          <p className="text-xs mt-1">Check back later for new high-intent leads</p>
-        </div>
-      ) : (
-        <LeadTable
-          leads={highIntentLeads.slice(0, 8)}
-          loading={loading}
-          onLeadClick={handleViewLead}
-          onLeadAction={(action, lead) => {
-            if (action === 'view') handleViewLead(lead);
-            if (action === 'edit') handleEditLead(lead);
-          }}
-          className="compact"
-        />
-      )}
-    </div>
-  </div>
-</SlideIn>
+            <SlideIn direction="right" delay={0.3}>
+              <div>
+                <div className="flex justify-between items-center mb-4">
+                  <div className="flex items-center gap-2">
+                    <h2 className="text-xl font-bold">Hot Leads</h2>
+                    <span className="bg-red-100 text-red-800 text-xs font-medium px-2.5 py-0.5 rounded-full">
+                      High Priority
+                    </span>
+                  </div>
+                  <a href="/leads" className="text-sm text-gray-500 hover:text-blue-600 transition-colors">view all</a>
+                </div>
+                <div className="bg-white p-4 rounded-lg shadow-sm border border-red-100">
+                  {highIntentLeads.length === 0 && !loading ? (
+                    <div className="text-center py-8 text-gray-500">
+                      <div className="w-12 h-12 mx-auto mb-2 bg-red-100 rounded-full flex items-center justify-center">
+                        <svg className="w-6 h-6 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
+                        </svg>
+                      </div>
+                      <p className="text-sm">No hot leads at the moment</p>
+                      <p className="text-xs mt-1">Check back later for new high-intent leads</p>
+                    </div>
+                  ) : (
+                    <LeadTable
+                      leads={highIntentLeads.slice(0, 8)}
+                      loading={loading}
+                      onLeadClick={handleViewLead}
+                      onLeadAction={(action, lead) => {
+                        if (action === 'view') handleViewLead(lead);
+                        if (action === 'edit') handleEditLead(lead);
+                      }}
+                      className="compact"
+                    />
+                  )}
+                </div>
+              </div>
+            </SlideIn>
 
           </div>
 
@@ -219,9 +203,9 @@ export default function DashboardPage() {
                                   <h3 className="font-semibold">{property.name}</h3>
                                   <p className="text-sm text-gray-500">{property.location} - {property.type}</p>
                                 </div>
-                                <Button 
-                                  variant="outline" 
-                                  size="sm" 
+                                <Button
+                                  variant="outline"
+                                  size="sm"
                                   className="hover:bg-blue-50 transition-colors"
                                   onClick={() => handleViewProperty(property)}
                                 >
@@ -262,7 +246,7 @@ export default function DashboardPage() {
                   </div>
                 </div>
               </FadeIn>
-              
+
               {/* Activity Panel */}
               <FadeIn delay={0.7}>
                 <div className="mt-6">
@@ -288,13 +272,12 @@ export default function DashboardPage() {
                         <>
                           {recentActivities.slice(0, 4).map((activity) => (
                             <div key={activity.id} className="flex items-center gap-3 p-3 border border-gray-100 rounded-lg hover:bg-blue-50 transition-colors">
-                              <div className={`w-2 h-2 rounded-full ${
-                                activity.type === ActivityType.LEAD_ASSIGNED ? 'bg-green-500' :
+                              <div className={`w-2 h-2 rounded-full ${activity.type === ActivityType.LEAD_ASSIGNED ? 'bg-green-500' :
                                 activity.type === ActivityType.SITE_VISIT ? 'bg-blue-500' :
-                                activity.type === ActivityType.FOLLOW_UP ? 'bg-yellow-500' :
-                                activity.type === ActivityType.TOKEN_ISSUED ? 'bg-purple-500' :
-                                'bg-gray-500'
-                              }`}></div>
+                                  activity.type === ActivityType.FOLLOW_UP ? 'bg-yellow-500' :
+                                    activity.type === ActivityType.TOKEN_ISSUED ? 'bg-purple-500' :
+                                      'bg-gray-500'
+                                }`}></div>
                               <div className="flex-1">
                                 <p className="text-sm font-medium">{activity.description}</p>
                                 <p className="text-xs text-gray-500">
@@ -317,20 +300,13 @@ export default function DashboardPage() {
             </div>
           </div>
         </div>
-        
-        {/* Action Buttons - Responsive placement */}
-        
+
+        <PropertyDetailsModal
+          property={selectedProperty}
+          isOpen={isModalOpen}
+          onClose={() => setSelectedProperty(null)}
+        />
       </div>
-      
-      <PropertyDetailsModal
-        property={selectedProperty}
-        isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
-        onEdit={(property) => {
-          console.log('Edit property:', property);
-          setIsModalOpen(false);
-        }}
-      />
     </DashboardLayout>
   );
 }
