@@ -12,6 +12,9 @@ export async function middleware(request: NextRequest) {
         "/_next",
         "/favicon.ico",
         "/images",
+        "/api/get-user",
+        "/api/get-properties",
+        "/api/post-lead",
     ];
 
     // Check if the current path is public

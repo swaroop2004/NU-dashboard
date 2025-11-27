@@ -115,6 +115,20 @@ async function handleUpdate(req: Request, isFullReplace: boolean) {
     const url = new URL(req.url);
     const leadId = url.searchParams.get("id");
 
+    // Check Auth (Session or API Key)
+    const apiKey = req.headers.get("x-api-key");
+    const validApiKey = process.env.API_KEY;
+    const isApiRequest = apiKey && validApiKey && apiKey === validApiKey;
+
+    if (!isApiRequest) {
+      const session = await auth.api.getSession({
+        headers: await headers()
+      });
+      if (!session) {
+        return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      }
+    }
+
     if (!leadId) {
       return NextResponse.json({ error: "Lead ID is required" }, { status: 400 });
     }
